@@ -1,0 +1,70 @@
+---
+title: "Prompt Master: AI Prompt Engineering as a Claude Skill"
+sidebarTitle: "Introduction"
+description: "Prompt Master is a Claude skill that writes production-ready prompts for 30+ AI tools. Zero wasted tokens, full context retention, first-attempt accuracy."
+---
+
+Prompt Master is a Claude skill (version 1.7.0) that turns rough prompt ideas into production-ready prompts optimized for specific AI tools. Instead of re-prompting your way to the right answer, Prompt Master extracts your intent, routes to the correct prompt framework, audits for token waste, and delivers a single copyable prompt that works on the first try.
+
+## The problem it solves
+
+Every AI user wastes credits the same way: write a vague prompt, get the wrong output, re-prompt, get closer, re-prompt again. That's three wasted API calls multiplied across dozens of prompts per day.
+
+> "The best prompt is not the longest. It's the one where every word is load-bearing."
+
+Most prompt generators make prompts longer. Prompt Master makes them sharper.
+
+## What it covers
+
+<CardGroup cols={2}>
+  <Card title="30+ Tool Profiles" icon="layer-group" href="/tools/llms">
+    Specific routing rules for LLMs, coding agents, image AI, video AI, 3D generators, and automation tools.
+  </Card>
+  <Card title="12 Prompt Templates" icon="rectangle-list" href="/templates/overview">
+    RTF, CO-STAR, RISEN, CRISPE, Chain of Thought, ReAct, Visual Descriptor — picked automatically for every task.
+  </Card>
+  <Card title="35 Anti-Pattern Checks" icon="shield-check" href="/patterns/overview">
+    Vague verbs, missing scope, no stop conditions, wrong CoT usage — detected and fixed silently before delivery.
+  </Card>
+  <Card title="Memory Block System" icon="brain" href="/how-it-works/memory-block">
+    Prior session decisions are carried forward so the AI never contradicts earlier work.
+  </Card>
+</CardGroup>
+
+## Key design principles
+
+**Silent routing** — Prompt Master never shows you framework names or internal routing decisions. You describe what you want; it picks the right architecture without narrating its own process.
+
+**Token efficiency audit** — every generated prompt is stripped of non-load-bearing words before delivery. No padding, no vague adjectives, no redundant constraints.
+
+**Max 3 clarifying questions** — if critical information is missing, Prompt Master asks targeted questions, never more than three. You get a prompt quickly, not an interrogation.
+
+**Safe techniques only** — Prompt Master avoids techniques known to cause hallucinations or unpredictable output (Tree of Thought, Graph of Thought, Universal Self-Consistency, prompt chaining). Only role assignment, few-shot examples, XML structure, grounding anchors, and chain of thought are used — and only when genuinely needed.
+
+## Activation
+
+Prompt Master activates **only** when you explicitly ask it to write, fix, improve, or adapt a prompt for a specific AI tool. It does not interfere with regular Claude conversations, coding tasks, or document writing.
+
+```
+# Natural language activation
+Write me a prompt for Cursor to refactor my auth module
+
+# Explicit activation
+/prompt-master
+I want to ask Claude Code to build a todo app with React and Supabase
+```
+
+## Supported tools
+
+Prompt Master ships with profiles for 30+ tools across six categories:
+
+| Category | Tools |
+|----------|-------|
+| **Reasoning LLMs** | Claude 4.x, ChatGPT/GPT-5.x, Gemini 2.x/3, o3/o4-mini, DeepSeek-R1, MiniMax, Qwen 2.5/3 |
+| **Local / open-weight LLMs** | Ollama, Llama, Mistral |
+| **Coding agents** | Claude Code, Cursor, Windsurf, Cline, GitHub Copilot, Antigravity |
+| **Full-stack generators** | Bolt, v0, Lovable, Figma Make, Google Stitch, Devin, SWE-agent |
+| **Image AI** | Midjourney, DALL-E 3, Stable Diffusion, SeeDream, ComfyUI |
+| **Video / voice / 3D / workflow** | Sora, Runway, Kling, ElevenLabs, Zapier, Make, n8n, Meshy, Tripo, Rodin |
+
+For tools not on the list, Prompt Master uses a Universal Fingerprint — four questions that produce a quality prompt for any AI system it has never seen before.

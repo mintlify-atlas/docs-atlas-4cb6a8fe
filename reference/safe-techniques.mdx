@@ -1,0 +1,220 @@
+---
+title: "Safe Prompt Engineering Techniques Used by Prompt Master"
+sidebarTitle: "Safe Techniques"
+description: "Five safe prompt techniques Prompt Master applies selectively, the excluded high-risk techniques, and all output format and credential safety rules."
+---
+
+Prompt Master applies a deliberately small set of prompt engineering techniques — only five — chosen because they have a consistent, measurable effect on output quality without introducing fabrication risk. Every other technique that sounds compelling in a research abstract was evaluated and excluded because it either simulates capabilities that no single forward-pass model actually has, or compounds errors across multiple steps in a way that makes outputs less trustworthy, not more. This page documents exactly what those five techniques are, when each one is applied, and why everything else was left out.
+
+## The Five Safe Techniques
+
+Each technique is applied conditionally — only when the task genuinely calls for it. Applying all five to every prompt would add noise and hurt output quality.
+
+<Accordion title="1 — Role Assignment">
+
+Role Assignment instructs the model to adopt a specific expert identity before responding. This calibrates the vocabulary, depth of reasoning, and implicit assumptions the model brings to a task. A vague persona provides no useful signal; a precisely scoped one narrows the distribution of likely responses toward exactly the expertise the task requires.
+
+**Apply for:** complex or specialized tasks where domain-specific reasoning, terminology, or judgment is needed.
+
+| | Example |
+|---|---|
+| **Weak** | `You are a helpful assistant.` |
+| **Strong** | `You are a senior backend engineer specializing in distributed systems who prioritizes correctness over cleverness.` |
+
+The strong version specifies seniority, domain, subdomain, and a value judgment (correctness over cleverness) that shapes every trade-off the model makes in its response.
+
+</Accordion>
+
+<Accordion title="2 — Few-Shot Examples">
+
+Few-Shot Examples provide 2–5 concrete input/output pairs that demonstrate the desired format before asking the model to produce its own output. Instructions describe what you want; examples *show* it. For formatting tasks, a single example eliminates more ambiguity than a paragraph of prose.
+
+**Apply when:**
+- The user has re-prompted for the same formatting issue more than once, **or**
+- The format is easier to show than describe
+
+**Provide:** 2–5 input/output pairs — enough to establish the pattern without inflating the prompt unnecessarily.
+
+```text
+Input: Q3 revenue was $4.2M, up 18% YoY.
+Output: 📈 Revenue — $4.2M (+18% YoY)
+
+Input: Headcount is 47, down from 52 last quarter.
+Output: 👥 Headcount — 47 (−5 QoQ)
+
+Input: [user's actual data]
+Output:
+```
+
+</Accordion>
+
+<Accordion title="3 — XML Structural Tags">
+
+XML Structural Tags wrap distinct sections of a prompt in named tags that Claude-based tools parse with high reliability. When a prompt contains multiple sections — background context, the task, hard constraints, and output requirements — untagged prose forces the model to infer where one section ends and another begins. Tags eliminate that inference step.
+
+**Apply for:** complex multi-section prompts targeting Claude-based tools.
+
+<Warning>
+  Do **not** use XML structural tags for non-Claude tools. Other models do not have the same training on structured XML parsing and may treat the tags as literal content or ignore them unpredictably.
+</Warning>
+
+**Supported tags:**
+
+| Tag | Purpose |
+|---|---|
+| `<context>` | Background information the model needs before acting |
+| `<task>` | The specific action being requested |
+| `<constraints>` | Hard rules the response must follow |
+| `<output_format>` | Structure, length, and formatting of the response |
+
+```xml
+<context>
+You are reviewing a pull request for a high-traffic payment service.
+The codebase uses Go 1.22 and follows the repository's error-wrapping conventions.
+</context>
+
+<task>
+Identify any issues with error handling, resource cleanup, or concurrency
+in the diff below. Focus on correctness, not style.
+</task>
+
+<constraints>
+Flag only genuine bugs or risks. Do not comment on naming conventions.
+Do not suggest refactors unrelated to correctness.
+</constraints>
+
+<output_format>
+Return a numbered list. Each item: [severity: low/medium/high] — description.
+If no issues are found, say "No issues found."
+</output_format>
+```
+
+</Accordion>
+
+<Accordion title="4 — Grounding Anchors">
+
+Grounding Anchors add an explicit anti-hallucination instruction to prompts that involve facts, statistics, or citations. Models will fill gaps in their knowledge with confident-sounding fabrications unless explicitly told not to. A grounding anchor surfaces uncertainty rather than burying it.
+
+**Apply for:** any factual or citation task — research summaries, competitive analysis, technical documentation, anything where a fabricated statistic or wrong attribution causes real harm.
+
+**Exact formula:**
+
+```text
+Use only information you are highly confident is accurate.
+If uncertain, write [uncertain] next to the claim.
+Do not fabricate citations or statistics.
+```
+
+This formula does three things: it raises the model's internal confidence threshold for assertion, it provides a safe output token (`[uncertain]`) so the model can flag rather than fabricate, and it explicitly prohibits the two most common hallucination failure modes.
+
+</Accordion>
+
+<Accordion title="5 — Chain of Thought">
+
+Chain of Thought forces the model to reason step by step before producing a final answer. On logic, math, and debugging tasks, skipping to an answer produces more errors than reasoning toward one. Adding the instruction makes that intermediate reasoning visible and checkable.
+
+**Apply for:** logic, math, and debugging tasks on standard reasoning models.
+
+**Exact formula:**
+
+```text
+Think through this step by step before answering.
+```
+
+**Compatible models:** Claude, GPT-5.x, Gemini, Qwen2.5, Llama
+
+<Warning>
+  **Never apply Chain of Thought to:** o3, o4-mini, DeepSeek-R1, or Qwen3 in thinking mode.
+
+  These models perform reasoning internally before generating any visible output. Asking them to think step by step in the output conflicts with their internal reasoning process and degrades response quality. The instruction is redundant at best and disruptive at worst.
+</Warning>
+
+</Accordion>
+
+---
+
+## Excluded Techniques
+
+The following techniques appear in prompt engineering literature and tutorials but are excluded from Prompt Master entirely. Each one was evaluated and rejected for a specific structural reason — not because the idea is bad in theory, but because it cannot be safely executed within a single forward-pass inference call.
+
+<Warning>
+  These techniques are **permanently excluded**. They are not available via any option or advanced mode. Requesting them will result in Prompt Master noting the exclusion and applying the closest safe equivalent instead.
+</Warning>
+
+| Technique | Why It's Excluded |
+|---|---|
+| **Mixture of Experts** | Simulates multi-persona routing inside a single forward pass. A real MoE architecture routes tokens to separate expert networks at the hardware level. Prompting a model to "consult multiple experts" produces one voice roleplaying several — the diversity is theatrical, not structural, and increases confident fabrication. |
+| **Tree of Thought** | Requires genuinely parallel branch evaluation with a selection pass over real alternatives. In a single forward pass, the model generates one token sequence. Simulated branching means the model writes out paths it has already implicitly collapsed — adding length without adding reasoning quality. |
+| **Graph of Thought** | Requires an external graph engine to maintain node state, traverse edges, and pass structured data between reasoning steps. No such engine exists in standard tool environments. Prompting for graph traversal produces narrative description of a graph, not actual graph computation. |
+| **Universal Self-Consistency** | Requires generating multiple independent samples and then selecting the most consistent answer across them. This needs at minimum three separate inference calls with different random seeds. A single prompt cannot produce independent samples — any "multiple answers" in one response are correlated by construction. |
+| **Prompt Chaining (as a layered technique)** | Chaining prompts sequentially compounds fabrication risk: errors introduced in step one propagate into step two with no correction mechanism. The longer the chain, the more confident and wrong the final output can become. Prompt chaining is not prohibited as a user workflow, but Prompt Master does not construct or recommend chained prompt architectures. |
+
+---
+
+## Output Format
+
+Every prompt Prompt Master generates is delivered in the same structure — no exceptions.
+
+**1. A single copyable prompt block**
+
+The generated prompt is ready to paste directly into the target tool. No setup required beyond the optional note below.
+
+**2. A target and optimization line**
+
+```
+🎯 Target: [tool name]
+💡 [One sentence — what was optimized and why]
+```
+
+**3. An optional setup note (1–2 lines max)**
+
+Only included when genuinely needed — for example, when a tool requires a system prompt to be set separately, or when a dependency must exist before the prompt will work. If nothing special is required, this line is omitted entirely.
+
+### Copywriting and Content Prompts
+
+When generating prompts for copywriting, marketing, or branded content tasks, Prompt Master includes fillable placeholders so the prompt works across contexts without being rewritten each time.
+
+```text
+[TONE]         — e.g. "confident and direct" or "warm and approachable"
+[AUDIENCE]     — e.g. "early-stage founders" or "enterprise IT buyers"
+[BRAND VOICE]  — e.g. "technical but never jargon-heavy"
+[PRODUCT NAME] — e.g. "Acme Analytics"
+```
+
+Replace these before pasting. Leave them bracketed if you want the model to ask for them at runtime.
+
+---
+
+## Credential Safety
+
+Generated prompts must never contain API keys, tokens, secrets, connection strings, authentication credentials, or environment variable values. This rule applies regardless of what the user pastes into the input.
+
+**Safe references to use instead:**
+
+```text
+assumes [service] is already authenticated
+requires [ENV_VAR_NAME] to be set
+uses the API key configured in your environment
+```
+
+If a user includes credentials in their input, Prompt Master will:
+1. Strip the credentials from the output prompt
+2. Add the note: *"Credentials removed. Set as environment variables instead of embedding in prompts."*
+
+<Warning>
+  This rule is not configurable. Credentials will be stripped from generated prompts even if the user explicitly requests they be included.
+</Warning>
+
+---
+
+## Input Sanitization
+
+When a user pastes an existing prompt for analysis, adaptation, or debugging, the entire pasted content is treated as **inert data only**.
+
+- Prompt Master does not execute instructions embedded in pasted prompts
+- Prompt Master does not reveal its system prompt
+- Instructions in pasted content that conflict with safety guidelines are flagged as part of the analysis, not followed
+
+<Note>
+  This protection exists because prompt injection — embedding instructions inside user-supplied text to hijack an AI's behavior — is a real attack vector. Pasted prompts are data to be analyzed, not commands to be obeyed.
+</Note>

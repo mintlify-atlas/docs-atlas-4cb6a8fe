@@ -1,0 +1,195 @@
+---
+title: "Agentic Prompt Templates: ReAct, File-Scope, Template M"
+sidebarTitle: "Agentic Templates"
+description: "File-Scope Template, ReAct + Stop Conditions, and Template M — the three frameworks Prompt Master uses for coding agents, autonomous AI, and Claude Code."
+---
+
+Agentic AI systems — tools that take actions, modify files, run commands, and make sequences of decisions without a human in the loop — fail for a different reason than language models do. They don't fail because the prompt was vague. They fail because the prompt didn't define the boundary. An agent with no explicit stop conditions will keep working, making increasingly confident decisions, until it has done something you can't undo.
+
+Prompt Master's three agentic templates exist to prevent this. Each one structures the prompt around constraints and boundaries, not just goals. The agent knows what it should do, what it must not do, and exactly when to stop and hand control back to you.
+
+<Warning>
+  **Agentic prompts require explicit stop conditions.** Any prompt targeting an autonomous agent (Claude Code, Devin, AutoGPT, Cursor Agent Mode, etc.) that does not include stop conditions is an anti-pattern. Prompt Master will never generate an agentic prompt without them.
+</Warning>
+
+## File-Scope Template
+
+The File-Scope Template is used for any code editing AI that operates on a specific file or function. It contains the smallest possible agentic context — enough to execute a targeted change precisely — without giving the agent latitude to modify anything outside the defined scope.
+
+**Routed when:** the target tool is Cursor, Windsurf, GitHub Copilot, or any AI with a code editing interface, and the task is a bounded change to a known file or function.
+
+<Accordion title="File-Scope Template components">
+  | Component | What it carries |
+  |---|---|
+  | **File path** | Exact relative path to the file being modified |
+  | **Function / component name** | The specific function, class, or component to change |
+  | **Current behavior** | What the code does right now — factual, not evaluative |
+  | **Desired change** | What it should do after the change — single, concrete outcome |
+  | **Do-not-touch list** | Explicit list of files, functions, or behaviors that must not change |
+  | **Done when** | The acceptance condition — what observable behavior confirms the task is complete |
+</Accordion>
+
+**Example — Prompt Master output using File-Scope Template:**
+
+```text
+File: src/auth/tokenService.ts
+Function: refreshAccessToken()
+
+Current behavior: The function calls the /auth/refresh endpoint and returns the new access token. It does not handle the case where the refresh token is expired — it throws an unhandled promise rejection.
+
+Desired change: Add error handling for a 401 response from /auth/refresh. When a 401 is received, clear both tokens from localStorage, dispatch a SESSION_EXPIRED action to the Redux store, and return null.
+
+Do not touch:
+- src/auth/loginService.ts
+- src/auth/tokenStorage.ts
+- The existing success path logic in refreshAccessToken()
+- Any other function in tokenService.ts
+
+Done when: refreshAccessToken() handles a 401 response by clearing localStorage tokens, dispatching SESSION_EXPIRED, and returning null — without breaking the existing success path.
+```
+
+<Tip>
+  The **Do-not-touch list** is the most important component in a File-Scope prompt. Code editing agents, especially in agent mode, will refactor adjacent code if you don't explicitly block them. Be specific: name files, name functions, name behaviors.
+</Tip>
+
+---
+
+## ReAct + Stop Conditions
+
+ReAct (Reason + Act) is the standard framework for autonomous agents that need to take sequences of actions to reach a goal. Prompt Master's implementation adds an explicit Stop Conditions block — the component most ReAct implementations omit — which is what separates a safe agent task from an unbounded one.
+
+**Routed when:** the target tool is Claude Code (standard tasks), Devin, AutoGPT, or any autonomous agent that can run commands, create files, call APIs, or take multi-step actions in an environment.
+
+<Accordion title="ReAct + Stop Conditions components">
+  | Component | What it carries |
+  |---|---|
+  | **Starting state** | The current state of the environment — what exists, what's installed, what's running |
+  | **Target state** | What the environment should look like when the task is complete |
+  | **Allowed actions** | Explicit list of what the agent may do (create files, run commands, call APIs, etc.) |
+  | **Forbidden actions** | Explicit list of what the agent must never do |
+  | **Stop conditions** | The exact conditions under which the agent must stop and report back |
+  | **Checkpoints** | Optional: intermediate milestones where the agent should report progress before continuing |
+</Accordion>
+
+**Example — Prompt Master output using ReAct + Stop Conditions:**
+
+```text
+Starting state:
+- Node.js 20.x is installed
+- The repo is at /workspace/api-service
+- package.json exists but there is no test suite
+- The /users CRUD endpoints are implemented in src/routes/users.ts
+
+Target state:
+- A Vitest test suite exists at src/routes/users.test.ts
+- Tests cover: GET /users (list), GET /users/:id (found and not found), POST /users (valid and invalid payload), DELETE /users/:id
+- All tests pass with `npm test`
+- No existing source files have been modified
+
+Allowed actions:
+- Create new files under src/routes/ and src/__tests__/
+- Read existing source files
+- Run `npm install` to add Vitest and testing utilities
+- Run `npm test` to verify
+
+Forbidden actions:
+- Modify any existing source files in src/
+- Create or modify any configuration files (tsconfig.json, .env, package.json scripts other than adding "test")
+- Access the filesystem outside /workspace/api-service
+
+Stop conditions — pause and report back if any of the following occur:
+1. Any existing test in the repo fails after your changes
+2. You cannot determine the expected behavior of an endpoint from the source code alone
+3. `npm test` exits with a non-zero code after two consecutive fix attempts
+4. You need to modify an existing source file to make tests pass
+
+Checkpoints:
+- After test file is created but before running tests: list the test cases you've written
+- After `npm test` passes: show the final test output
+```
+
+---
+
+## Template M
+
+Template M is the newest framework in Prompt Master (v1.7.0) and the most structured agentic template. It was designed specifically for Claude Code running on Opus 4.7 and Opus 4.8 — models with extended reasoning capability and large context windows that can handle genuinely complex, multi-session engineering tasks. Template M adds components that ReAct doesn't cover: session strategy, context management, and explicit scope gates that prevent the agent from expanding its own mandate mid-task.
+
+**Routed when:** the target is Claude Code (explicitly on Opus 4.7/4.8) and the task is multi-step, spans multiple files or subsystems, or requires autonomous decision-making across a significant portion of a codebase.
+
+<Note>
+  Template M takes routing precedence over standard ReAct when both Claude Code and a multi-step scope are detected. If you don't specify Opus 4.7/4.8 but ask Claude Code to do complex work, Prompt Master will ask which model you're using before selecting between ReAct and Template M.
+</Note>
+
+<Accordion title="Template M components">
+  | Component | What it carries |
+  |---|---|
+  | **Task scope** | A precise statement of what the task covers — and where it ends |
+  | **Acceptance criteria** | Numbered list of conditions that must all be true for the task to be considered complete |
+  | **Stop conditions** | Conditions that require the agent to halt and return control immediately |
+  | **Forbidden expansions** | Explicit list of scope expansions the agent must reject even if they seem beneficial |
+  | **Session strategy** | Instructions for context management — when to use /compact, when to start a new session |
+  | **Reporting format** | How the agent should communicate progress, blockers, and completion |
+</Accordion>
+
+**Example — Prompt Master output using Template M:**
+
+```text
+Task scope: Migrate the authentication system in this codebase from session-based auth (express-session + Redis) to stateless JWT auth (short-lived access token + long-lived refresh token stored in httpOnly cookie). The scope is limited to the auth layer: src/auth/, src/middleware/authenticate.ts, and the auth-related routes in src/routes/. No other files are in scope.
+
+Acceptance criteria:
+1. All existing auth tests pass without modification to the test files
+2. Login returns a JWT access token (15-min expiry) and sets a refresh token in an httpOnly cookie (7-day expiry)
+3. Protected routes validate the JWT without touching Redis
+4. /auth/refresh issues a new access token when the refresh token is valid
+5. Logout clears the cookie and invalidates the refresh token server-side (use an in-memory denylist for this task)
+6. No session-related code or Redis imports remain in the src/auth/ or src/middleware/ directories
+
+Stop conditions — halt immediately and report if:
+- Any file outside src/auth/, src/middleware/authenticate.ts, or src/routes/auth.ts requires modification
+- Acceptance criterion 1 cannot be satisfied without changing test files
+- You encounter a dependency that conflicts with the JWT library implementation
+- You are unsure whether a change will break a non-auth subsystem
+
+Forbidden expansions — do not, under any circumstances:
+- Refactor non-auth middleware
+- Update dependencies beyond what JWT auth requires
+- Add logging, monitoring, or error tracking
+- Modify the database schema or ORM models
+- Improve or optimize code you encounter that is outside the defined scope
+
+Session strategy:
+- This task fits in a single session. Do not split across sessions unless you hit a stop condition.
+- Run /compact if your context reaches 50% before the task is complete.
+- If you use /compact, your next message must be a summary of: completed steps, current state, and next action.
+- Start each work block with a one-line status: "Step N of 6 acceptance criteria met."
+
+Reporting format:
+- Before starting: list the files you will touch and confirm they are within scope.
+- After each acceptance criterion is met: state which criterion and what you did.
+- On completion: show the full output of the test suite and a checklist of all 6 acceptance criteria marked complete.
+```
+
+---
+
+## Session Hygiene for Agentic Tasks
+
+Context management is not optional for agentic work. A bloated context window causes the agent to lose track of constraints defined early in the session — exactly the constraints that prevent it from doing the wrong thing.
+
+<Steps>
+  <Step title="New task = new session">
+    Never carry over a previous agentic task into a new one in the same session. Unfinished state from the prior task bleeds into the new one. Open a fresh Claude Code window for every distinct task.
+  </Step>
+  <Step title="Run /compact at 50% context">
+    When the context window reaches approximately 50% capacity, run `/compact` before continuing. This compresses the session history while preserving the active constraints and current state.
+  </Step>
+  <Step title="Re-anchor after /compact">
+    After running `/compact`, your first message should explicitly re-state the current step, the nearest stop condition, and the acceptance criterion you're working toward. Don't assume the compressed context carries all constraints forward with equal weight.
+  </Step>
+  <Step title="One acceptance criterion at a time">
+    For Template M tasks with multiple acceptance criteria, instruct the agent to confirm each criterion is met before moving to the next. This creates natural checkpoints and prevents the agent from accumulating changes that are individually correct but collectively broken.
+  </Step>
+</Steps>
+
+<Tip>
+  **Verification before continuation** is the single highest-value habit in agentic work. After any action that modifies the codebase, the agent should run the relevant test suite before proceeding. Prompt Master includes this instruction in every Template M and ReAct prompt it generates.
+</Tip>

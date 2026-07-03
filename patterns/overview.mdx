@@ -1,0 +1,102 @@
+---
+title: "35 Credit-Killing Prompt Patterns Prompt Master Fixes"
+sidebarTitle: "Overview"
+description: "Prompt Master detects and fixes 35 prompt anti-patterns across six categories — saving tokens, preventing hallucinations, and ending re-prompting loops."
+---
+
+Every wasted API call traces back to one of thirty-five structural mistakes that appear in prompts before they ever reach an AI model. They are not typos or knowledge gaps — they are missing components: a task verb that commits to nothing, a scope with no boundary, a reasoning request sent to a model that already reasons internally. Prompt Master identifies all thirty-five patterns during its silent pre-flight audit and rewrites them before the prompt is delivered. It only surfaces a flag to you when fixing a pattern would change what you actually wanted — otherwise the correction happens invisibly.
+
+## The Six Pattern Categories
+
+Prompt Master organizes the thirty-five anti-patterns into six categories, each targeting a distinct layer of prompt quality. Understanding the categories helps you internalize the fixes even when Prompt Master is not running.
+
+<CardGroup cols={2}>
+  <Card title="Task Patterns" icon="list-check" href="/patterns/task-context">
+    **7 patterns** — Vague verbs, split tasks, missing success criteria, emotional descriptions, and implicit references that leave the model guessing what "done" looks like.
+  </Card>
+  <Card title="Context Patterns" icon="brain" href="/patterns/task-context">
+    **6 patterns** — Assumed prior knowledge, forgotten stack constraints, hallucination invitations, undefined audiences, and omitted failure history.
+  </Card>
+  <Card title="Format Patterns" icon="table-columns" href="/patterns/format-scope">
+    **6 patterns** — Missing output formats, implicit length, absent role assignments, vague aesthetic adjectives, and tool-specific syntax errors for image AI.
+  </Card>
+  <Card title="Scope Patterns" icon="crosshairs" href="/patterns/format-scope">
+    **6 patterns** — Unbounded fix requests, missing stack constraints, no stop conditions for agents, absent file paths for IDE AI, and pasting entire codebases.
+  </Card>
+  <Card title="Reasoning Patterns" icon="diagram-project" href="/patterns/reasoning-agentic">
+    **5 patterns** — Missing chain-of-thought for logic tasks, adding CoT to models that reason internally, absent self-checks, and contradictions with prior decisions.
+  </Card>
+  <Card title="Agentic Patterns" icon="robot" href="/patterns/reasoning-agentic">
+    **5 patterns** — No starting state, no target state, silent agents with no progress output, unrestricted filesystem access, and no human review triggers.
+  </Card>
+</CardGroup>
+
+## How Silent Fixing Works
+
+When you ask Prompt Master to write or improve a prompt, it runs the full diagnostic checklist internally before producing any output. Each of the thirty-five checks either passes or fails. For the majority of failures — missing output format, no role assignment, absent file path — the correct fix is deterministic: Prompt Master applies it without comment and the delivered prompt already contains the correction.
+
+Prompt Master only interrupts the flow in two situations:
+
+1. **Ambiguous intent** — the fix requires choosing between two plausible interpretations of what you want (e.g., the task is split across two goals and it cannot determine which is primary).
+2. **Dangerous patterns** — patterns where the wrong silent fix could cause agent actions you did not authorize (e.g., unlocked filesystem, no human review trigger).
+
+In all other cases, you receive a single copyable prompt block with no explanation overhead. The corrections are already inside it.
+
+## The Diagnostic Checklist
+
+The following checklist is what Prompt Master runs silently on every prompt it processes. It maps directly to the thirty-five patterns documented in the category pages.
+
+### Task Failures
+- [ ] Vague task verb — commits to no specific action
+- [ ] Two tasks combined in one prompt
+- [ ] No success criteria — "done" is undefined
+- [ ] Emotional task description instead of factual
+- [ ] Scope is "the whole thing" with no decomposition
+
+### Context Failures
+- [ ] Assumes prior knowledge from a previous session
+- [ ] Invites hallucination ("what do experts say")
+- [ ] No mention of prior failures and what was tried
+
+### Format Failures
+- [ ] No output format specified
+- [ ] Implicit or unspecified length
+- [ ] No role assignment
+- [ ] Vague aesthetic adjectives ("professional", "clean", "nice")
+
+### Scope Failures
+- [ ] No file or function boundary defined
+- [ ] No stop conditions for agent tasks
+- [ ] Entire codebase pasted as context
+
+### Reasoning Failures
+- [ ] No chain-of-thought instruction for a logic task
+- [ ] Chain-of-thought instruction sent to a reasoning model (o3, o4-mini, DeepSeek-R1, Qwen3)
+- [ ] New prompt contradicts prior architectural decisions
+
+### Agentic Failures
+- [ ] No starting state described
+- [ ] No target state described
+- [ ] No progress output format required
+- [ ] No filesystem restrictions specified
+- [ ] No human review trigger defined
+
+## Pattern Count by Category
+
+| Category | Patterns | Pages |
+|---|---|---|
+| Task | 7 | [Task & Context](/patterns/task-context) |
+| Context | 6 | [Task & Context](/patterns/task-context) |
+| Format | 6 | [Format & Scope](/patterns/format-scope) |
+| Scope | 6 | [Format & Scope](/patterns/format-scope) |
+| Reasoning | 5 | [Reasoning & Agentic](/patterns/reasoning-agentic) |
+| Agentic | 5 | [Reasoning & Agentic](/patterns/reasoning-agentic) |
+| **Total** | **35** | |
+
+## Why These Thirty-Five
+
+These patterns were selected because each one reliably produces one of three outcomes: the model outputs something the user did not want, the model asks a clarifying question that delays the result, or the model confidently produces the wrong output and the user does not notice until after acting on it. The third outcome is the most expensive — not in tokens, but in real-world consequences. The thirty-five patterns in this library represent the intersection of high frequency and high cost. Every prompt that passes all thirty-five checks has the structural conditions required for first-attempt accuracy.
+
+<Note>
+The diagnostic checklist above covers 35 patterns. The detailed before/after examples, explanations of why each pattern wastes credits, and the exact rewrites Prompt Master applies are documented in the three category pages linked throughout this overview.
+</Note>

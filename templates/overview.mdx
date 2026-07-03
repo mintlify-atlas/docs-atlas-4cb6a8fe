@@ -1,0 +1,98 @@
+---
+title: "12 Prompt Templates Auto-Selected by Prompt Master"
+sidebarTitle: "Overview"
+description: "Prompt Master silently routes every request to one of 12 frameworks — RTF to ReAct to Visual Descriptor — delivering a production-ready prompt."
+---
+
+Prompt Master doesn't ask you to choose a prompt framework. It reads your request, identifies the target AI tool, infers the task type, and silently routes to whichever of the 12 built-in templates will produce the most accurate, token-efficient output. You never see the framework name — you see a single, copyable prompt that's already been structured, audited, and trimmed.
+
+The routing happens in one step inside Prompt Master's 7-stage pipeline. Every template carries its own set of required components and anti-pattern checks, so the final prompt always has what the target tool needs and never has what wastes its context window.
+
+<Note>
+  **Silent routing is intentional.** Exposing the framework name would add noise to the output. The goal is a prompt you can paste, not a lesson in prompt engineering. If you want to understand which framework was used and why, ask: *"What template did you use for that prompt, and why?"*
+</Note>
+
+## The 12 Templates at a Glance
+
+| Template | Best For |
+|---|---|
+| **RTF** (Role, Task, Format) | Fast one-shot tasks |
+| **CO-STAR** (Context, Objective, Style, Tone, Audience, Response) | Professional documents, reports, business writing |
+| **RISEN** (Role, Instructions, Steps, End Goal, Narrowing) | Complex multi-step projects |
+| **CRISPE** (Capacity, Role, Insight, Statement, Personality, Experiment) | Creative work, brand voice, iterative content |
+| **Chain of Thought** | Math, logic, debugging, multi-step analysis |
+| **Few-Shot** | Consistent structured output, pattern replication |
+| **File-Scope Template** | Cursor, Windsurf, Copilot — any code editing AI |
+| **ReAct + Stop Conditions** | Claude Code, Devin, AutoGPT — any autonomous agent |
+| **Visual Descriptor** | Midjourney, DALL-E, Stable Diffusion, Sora — generation |
+| **Reference Image Editing** | Editing an existing image — detects edit vs. generate automatically |
+| **ComfyUI** | Node-based image workflows — positive/negative split per checkpoint |
+| **Prompt Decompiler** | Breaking down, adapting, simplifying, or splitting existing prompts |
+| **Template M** | Agentic or multi-step tasks for Claude Code with Opus 4.7/4.8 |
+
+<Tip>
+  **Template M** is the newest addition to the library (added in v1.7.0). It handles scope definition, acceptance criteria, stop conditions, and session strategy specifically for Claude Code running on Opus 4.7 or 4.8. If your task involves Claude Code doing autonomous multi-step work, Template M takes precedence over standard ReAct routing.
+</Tip>
+
+## How Auto-Selection Works
+
+Prompt Master evaluates three signals before committing to a template:
+
+<Steps>
+  <Step title="Target tool detection">
+    The tool name (Cursor, Midjourney, Claude Code, GPT-4o, etc.) determines which template family is eligible. Image generation tools route to the image template family. Autonomous coding agents route to the agentic family. LLMs route to text templates.
+  </Step>
+  <Step title="Task type classification">
+    Within the eligible family, the task type narrows the choice. A creative brief routes to CRISPE rather than RTF. A logic problem routes to Chain of Thought rather than CO-STAR. A pattern-replication task routes to Few-Shot.
+  </Step>
+  <Step title="Component completeness check">
+    Prompt Master checks whether the required components for the candidate template are satisfiable from the information you've provided. If critical components are missing, it asks at most 3 clarifying questions before generating.
+  </Step>
+</Steps>
+
+## Template Families
+
+The 12 templates are organized into three families. Each family has its own documentation page with component breakdowns, routing logic, and real generated examples.
+
+<CardGroup cols={3}>
+  <Card title="Text Templates" icon="align-left" href="/templates/text-templates">
+    RTF, CO-STAR, RISEN, CRISPE, Few-Shot, and Chain of Thought — the core text-generation frameworks for LLMs and writing tasks.
+  </Card>
+  <Card title="Agentic Templates" icon="robot" href="/templates/agentic-templates">
+    File-Scope Template, ReAct + Stop Conditions, and Template M — structured frameworks for coding agents and autonomous AI systems.
+  </Card>
+  <Card title="Image Templates" icon="image" href="/templates/image-templates">
+    Visual Descriptor, Reference Image Editing, ComfyUI, and Prompt Decompiler — output-calibrated formats for every image and media AI.
+  </Card>
+</CardGroup>
+
+## What You Never See
+
+Prompt Master excludes several techniques that carry a high fabrication risk or produce unstable outputs in practice. These are permanently off the routing table regardless of the task:
+
+<Accordion title="Excluded techniques and why">
+  | Technique | Reason excluded |
+  |---|---|
+  | Mixture of Experts | Unstable cross-model outputs; fabrication-prone |
+  | Tree of Thought | Produces branching structures that most models don't resolve reliably |
+  | Graph of Thought | No consistent implementation across target tools |
+  | Universal Self-Consistency | Adds token cost without measurable accuracy gains for standard tasks |
+  | Prompt chaining as a layered technique | Layered chaining masks errors and makes debugging impossible |
+
+  None of these techniques appear in any generated prompt. If you explicitly request one, Prompt Master will explain why it's excluded and offer the safest equivalent alternative.
+</Accordion>
+
+## Safe Techniques Applied Inline
+
+Beyond the 12 templates, Prompt Master applies four safe techniques *within* a template when the task genuinely benefits from them. They are never added by default.
+
+| Technique | Applied when |
+|---|---|
+| **Role Assignment** | A domain-specific expert identity measurably improves output precision |
+| **Few-Shot Examples** | Format consistency is easier to show than describe (2–5 examples) |
+| **Grounding Anchors** | The task involves factual claims, citations, or recall-sensitive information |
+| **XML Structural Tags** | The target is a Claude-based tool and the prompt has 3+ distinct logical sections |
+
+<Note>
+  Chain of Thought is also a safe technique, but it is **never applied to o3, o4-mini, R1, or Qwen3-thinking models**. Those models perform their own internal reasoning — adding explicit CoT instructions degrades their output.
+</Note>

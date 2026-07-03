@@ -1,0 +1,61 @@
+---
+title: "Install Prompt Master as a Claude Skill"
+sidebarTitle: "Installation"
+description: "Install Prompt Master in Claude.ai in two steps by uploading the skill ZIP. No code, no API keys, no configuration required."
+---
+
+Prompt Master installs as a Claude skill — a packaged behavior set that Claude loads and activates on demand. The recommended installation method is uploading the ZIP file to Claude.ai. A secondary method for Claude Code users is cloning directly into the skills directory.
+
+## Recommended: Claude.ai (browser)
+
+This method works for all Claude.ai users and takes under two minutes.
+
+<Steps>
+  <Step title="Download the skill">
+    Go to [github.com/nidhinjs/prompt-master](https://github.com/nidhinjs/prompt-master), click **Code → Download ZIP**, and save the file to your computer.
+  </Step>
+  <Step title="Open Claude.ai settings">
+    In Claude.ai, click the **Sidebar** → **Customize** → **Skills**.
+  </Step>
+  <Step title="Upload the skill">
+    Click **Upload a Skill** and select the ZIP file you downloaded. Claude will parse the skill definition and make it available immediately.
+  </Step>
+  <Step title="Verify installation">
+    In any conversation, type:
+    ```
+    /prompt-master
+    Write me a prompt for ChatGPT to summarize a research paper
+    ```
+    You should receive a fully optimized prompt with a target and strategy note.
+  </Step>
+</Steps>
+
+## Alternative: Claude Code skills directory
+
+This method installs the skill for Claude Code sessions. It is not the recommended approach for most users.
+
+```bash
+mkdir -p ~/.claude/skills
+git clone https://github.com/nidhinjs/prompt-master.git ~/.claude/skills/prompt-master
+```
+
+<Warning>
+  The Claude Code method is not officially recommended. The browser upload method is preferred for reliable skill activation and version management.
+</Warning>
+
+## After installation
+
+No configuration is required. Prompt Master reads its routing rules and templates at runtime from the skill definition files (`SKILL.md` and the `references/` folder). There are no API keys, environment variables, or settings to configure.
+
+<Tip>
+  Prompt Master activates only when you explicitly ask it to write, fix, improve, or adapt a prompt. It will not interfere with regular Claude conversations or coding tasks.
+</Tip>
+
+## Updating
+
+To update to a newer version:
+1. Download the latest ZIP from GitHub.
+2. In Claude.ai → Customize → Skills, remove the existing Prompt Master skill.
+3. Upload the new ZIP.
+
+Version history is documented in the [Changelog](/reference/changelog).

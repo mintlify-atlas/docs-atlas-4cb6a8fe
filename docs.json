@@ -1,72 +1,86 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "Prompt Master",
+  "theme": "luma",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#343434",
+    "light": "#3c84ec",
+    "dark": "#9cc4f4"
   },
   "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "https://media.brand.dev/f585f51c-1226-480e-a6ce-0191fa9cc8be.svg",
+    "dark": "https://media.brand.dev/f585f51c-1226-480e-a6ce-0191fa9cc8be.svg"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/nidhinjs/prompt-master"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/nidhinjs/prompt-master"
     }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "How It Works",
+            "pages": [
+              "how-it-works/pipeline",
+              "how-it-works/intent-extraction",
+              "how-it-works/memory-block"
+            ]
+          },
+          {
+            "group": "Tool Profiles",
+            "pages": [
+              "tools/llms",
+              "tools/coding-agents",
+              "tools/image-ai",
+              "tools/video-voice-ai",
+              "tools/automation-ai"
+            ]
+          },
+          {
+            "group": "Prompt Templates",
+            "pages": [
+              "templates/overview",
+              "templates/text-templates",
+              "templates/agentic-templates",
+              "templates/image-templates"
+            ]
+          },
+          {
+            "group": "Anti-Patterns",
+            "pages": [
+              "patterns/overview",
+              "patterns/task-context",
+              "patterns/format-scope",
+              "patterns/reasoning-agentic"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/safe-techniques",
+              "reference/changelog"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

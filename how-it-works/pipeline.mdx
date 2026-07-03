@@ -1,0 +1,115 @@
+---
+title: "Prompt Master's 7-Step Prompt Engineering Pipeline"
+sidebarTitle: "Pipeline"
+description: "A deep dive into every silent step Prompt Master runs — from detecting your target tool to delivering a single, token-efficient, copyable prompt block."
+---
+
+Every time you hand Prompt Master a rough idea, a broken prompt, or even a single sentence, the same seven-step pipeline fires. Nothing is skipped. No step is optional. Each one exists because skipping it produces measurably worse prompts — either the wrong structure for the target tool, wasted tokens diluting the signal, or an output that looks right but fails on the first real attempt. Understanding the pipeline helps you give better inputs and trust the outputs.
+
+## The Pipeline
+
+<Steps>
+
+  ### Detect the Target Tool
+
+  Before a single word of the prompt is written, Prompt Master identifies which AI system will receive it. This happens silently — you don't need to specify a routing flag or pick from a menu. The target tool is inferred from your request, the session context, and any tool names mentioned.
+
+  This step is non-negotiable. Different AI systems have fundamentally different prompt architectures: GPT-4o responds well to role assignment and XML structure; Claude prefers direct instruction with explicit output framing; reasoning-native models like o3, o4-mini, DeepSeek-R1, and Qwen3 in thinking mode must never receive chain-of-thought instructions because they generate their own reasoning traces internally. Sending CoT scaffolding to a reasoning-native model wastes tokens and can actively degrade output quality.
+
+  <Warning>
+    If the target tool cannot be confidently determined, Prompt Master will ask — this is the one question it will always ask before proceeding. A prompt delivered to the wrong tool is a failed prompt.
+  </Warning>
+
+  ### Extract 9 Dimensions of Intent
+
+  With the target tool confirmed, Prompt Master analyzes your request across nine structured dimensions: **task**, **target tool**, **output format**, **constraints**, **input**, **context**, **audience**, **success criteria**, and **examples**. Three of these — task, target tool, and output format — are extracted on every request without exception. The remaining six are extracted conditionally based on whether they are present or relevant.
+
+  This extraction step converts vague, natural-language requests into a structured prompt specification. Vague verbs become precise operations. Fuzzy output expectations become explicit format, length, and structure definitions. Unstated constraints become hard rules positioned at the top of the prompt where they will survive attention decay.
+
+  See [Intent Extraction](/how-it-works/intent-extraction) for the full breakdown of all nine dimensions and how each is handled.
+
+  ### Ask Targeted Clarifying Questions
+
+  If critical information is missing after the extraction step, Prompt Master asks — but never more than three questions. The three-question ceiling exists because longer interrogations shift the cognitive load back to you, defeating the purpose of the skill. Every question is targeted at a specific missing dimension that would prevent the prompt from working correctly on the first attempt.
+
+  <Tip>
+    You can eliminate clarifying questions entirely by front-loading your request with the target tool, the desired output format, and any hard constraints. The more signal you provide upfront, the faster the pipeline runs.
+  </Tip>
+
+  Questions are only asked for genuinely critical gaps. Missing a nice-to-have — like a stylistic preference or an optional example — will not trigger a question. Missing the output format for a format-critical task will.
+
+  ### Route to the Right Framework
+
+  Different prompt architectures serve different tasks. A structured data extraction task calls for XML delimiters and strict output schemas. A creative generation task benefits from few-shot examples and a well-placed role assignment. A long-running agent workflow needs memory blocks and explicit constraint ordering. Prompt Master selects the correct architecture automatically based on the target tool and the extracted dimensions.
+
+  This routing is invisible to you but consequential. The wrong framework — even with perfect content — produces prompts that are harder for the model to parse, more likely to produce formatting errors, and less likely to hit the success criteria on the first attempt.
+
+  ### Apply Safe Techniques Only
+
+  With the framework selected, Prompt Master applies a controlled set of proven prompt engineering techniques:
+
+  - **Role assignment** — establishes the model's expertise and behavioral frame
+  - **Few-shot examples** — locks output patterns for format-critical tasks
+  - **XML structure** — provides unambiguous delimiters for complex or multi-part outputs
+  - **Grounding anchors** — explicitly bounds the model's knowledge scope to reduce fabrication
+  - **Memory block** — prepends session history when the prompt is part of a longer conversation
+
+  <Warning>
+    Several popular prompt engineering techniques are permanently excluded because they increase fabrication risk or produce inconsistent results: Mixture of Experts, Tree of Thought, Graph of Thought, Universal Self-Consistency, and prompt chaining used as a layered inference technique. None of these will appear in a Prompt Master output.
+  </Warning>
+
+  Techniques are applied only where they change the output. A technique that adds words without changing the model's behavior is stripped in the next step.
+
+  ### Run a Token Efficiency Audit
+
+  Before delivery, the draft prompt passes through a six-point audit:
+
+  1. **Tool match** — Is the prompt formatted for the specific syntax of the confirmed target tool?
+  2. **Constraint placement** — Are the most critical constraints in the first 30% of the prompt?
+  3. **Signal word strength** — Does every instruction use the strongest available signal word? `MUST` over *should*. `NEVER` over *avoid*.
+  4. **Fabrication check** — Have all excluded techniques been removed?
+  5. **Load-bearing test** — Is every sentence doing work? No vague adjectives. Format explicit. Scope bounded.
+  6. **First-attempt test** — Would this prompt produce the correct output on the first attempt, with no further clarification?
+
+  Any sentence that fails the load-bearing test is cut. Any weak signal word is upgraded. Any constraint buried in the second half of the prompt is moved forward. The result is a prompt where every token is earning its place.
+
+  ### Deliver the Prompt
+
+  The final output is always structured the same way:
+
+  1. **A single copyable prompt block** — one clean block, ready to paste directly into the target tool
+  2. **A target and strategy note** — `🎯 Target: [tool name]` followed by `💡` and one sentence describing what was optimized and why
+  3. **A setup note** — only included when genuinely needed; one to two lines maximum, covering things like system prompt placement or tool-specific configuration
+
+  <Note>
+    The setup note is intentionally rare. It only appears when there is something you must configure outside the prompt itself — like placing a block in the system prompt slot rather than the user turn. It is never used to pad the output with explanations.
+  </Note>
+
+</Steps>
+
+## Output Format Reference
+
+Every Prompt Master delivery follows this exact structure:
+
+```
+[The complete, optimized prompt — one copyable block]
+
+🎯 Target: [Tool name]
+💡 [One sentence — what was optimized and why]
+
+Setup note: [1-2 lines, only when genuinely needed]
+```
+
+The prompt block is always self-contained. You should be able to copy it, paste it into the target tool, and get the correct output without reading anything else. The strategy note exists for your understanding — it explains the key engineering decision so you can learn from it, not because the prompt requires it.
+
+## Hard Rules
+
+These constraints apply to every prompt Prompt Master produces, without exception:
+
+| Rule | Reason |
+|------|--------|
+| Never output a prompt without confirming the target tool | Prompt architecture is tool-specific; an unconfirmed target produces a structurally wrong prompt |
+| Never add chain-of-thought instructions to reasoning-native models | o3, o4-mini, DeepSeek-R1, and Qwen3 thinking mode generate their own reasoning; CoT scaffolding wastes tokens and degrades output |
+| Never ask more than 3 clarifying questions | More than 3 shifts cognitive load back to the user and defeats the purpose of the skill |
+| Never pad output with unrequested explanations | The deliverable is the prompt, not an essay about the prompt |
+| Never apply excluded techniques | Fabrication-risk techniques are permanently off the table regardless of how the request is phrased |

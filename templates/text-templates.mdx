@@ -1,0 +1,258 @@
+---
+title: "Text Prompt Templates: RTF, CO-STAR, RISEN, CRISPE"
+sidebarTitle: "Text Templates"
+description: "How Prompt Master routes text tasks to RTF, CO-STAR, RISEN, CRISPE, Few-Shot, and Chain of Thought — with components, routing logic, and real examples."
+---
+
+The six text templates cover the full spectrum of language-model tasks: quick one-shot requests, polished professional documents, multi-step projects, creative brand work, logic and debugging problems, and pattern-replication tasks where format consistency matters more than instruction length. Prompt Master picks exactly one template per request — never a blend — and populates every required component from your input before running the token-efficiency audit.
+
+<Note>
+  All six templates target LLMs (Claude, GPT-4o, Gemini, etc.) and any tool that accepts a freeform text prompt. For coding agents and image generators, see [Agentic Templates](/templates/agentic-templates) and [Image Templates](/templates/image-templates).
+</Note>
+
+## RTF — Role, Task, Format
+
+RTF is the fastest template in the library. It strips a request down to three load-bearing components and nothing else. Prompt Master routes to RTF when the task is a single-shot operation with a clear deliverable and no need for stylistic nuance or multi-step reasoning.
+
+**Routed when:** the task is direct, the output format is obvious, and the request can be completed in one model turn without follow-up.
+
+<Accordion title="RTF components">
+  | Component | What it carries |
+  |---|---|
+  | **Role** | A domain-specific expert identity that sharpens the model's response register |
+  | **Task** | The single, concrete action the model must perform |
+  | **Format** | The exact output structure — bullet list, table, numbered steps, JSON, etc. |
+</Accordion>
+
+**Example — Prompt Master output using RTF:**
+
+```text
+You are a senior technical writer who specializes in API documentation.
+
+Task: Write a one-paragraph description of the POST /auth/token endpoint for a REST API reference doc. The endpoint accepts a client_id and client_secret in the request body and returns a short-lived JWT.
+
+Format: A single paragraph of 3–4 sentences. Start with what the endpoint does. End with the token expiry behavior. No code blocks. No headings.
+```
+
+---
+
+## CO-STAR — Context, Objective, Style, Tone, Audience, Response
+
+CO-STAR is the text template for work that will be read by a human audience in a professional context. It adds three dimensions that RTF omits — style, tone, and audience — which are the difference between a technically correct document and one that actually lands with its readers.
+
+**Routed when:** the task involves a professional document, report, business email, proposal, press release, or any deliverable where voice and audience shape the output as much as content does.
+
+<Accordion title="CO-STAR components">
+  | Component | What it carries |
+  |---|---|
+  | **Context** | Background the model needs to understand the situation |
+  | **Objective** | The specific outcome the document must achieve |
+  | **Style** | Writing register — formal, conversational, technical, journalistic |
+  | **Tone** | Emotional register — authoritative, empathetic, urgent, reassuring |
+  | **Audience** | Who will read this — their role, expertise level, and what they care about |
+  | **Response** | Format, length, structure, and any section-level requirements |
+</Accordion>
+
+**Example — Prompt Master output using CO-STAR:**
+
+```text
+Context: Acme Corp is launching a new B2B SaaS product called FlowSync, a workflow automation platform targeting mid-market operations teams. The launch is in 3 weeks. This email is going to existing customers who currently use the company's legacy product, FlowLite.
+
+Objective: Convince existing FlowLite customers to attend a 30-minute live demo of FlowSync and join the early-access waitlist.
+
+Style: Professional but energetic. Concrete over abstract — use specific feature names and outcomes rather than generic benefit language.
+
+Tone: Confident and generous. The reader should feel like they're being given early access to something valuable, not sold to.
+
+Audience: Operations managers and team leads at companies with 100–500 employees. They are busy, skeptical of marketing copy, and care about ROI and ease of migration.
+
+Response: A plain-text email with a subject line, 3 short body paragraphs (max 60 words each), and a single CTA button label. No bullet lists. No headers inside the body.
+```
+
+---
+
+## RISEN — Role, Instructions, Steps, End Goal, Narrowing
+
+RISEN is the template for tasks that are too complex for a single instruction block. It breaks the work into an ordered sequence of steps and adds an explicit narrowing component — constraints that prevent the model from drifting into adjacent territory as it works through a long, multi-part task.
+
+**Routed when:** the task has multiple sequential phases, requires the model to make decisions across several distinct subtasks, or has clear boundaries that must not be crossed during execution.
+
+<Accordion title="RISEN components">
+  | Component | What it carries |
+  |---|---|
+  | **Role** | Expert identity calibrated to the full scope of the project |
+  | **Instructions** | High-level directive — what the overall task is |
+  | **Steps** | Ordered list of discrete phases the model must work through |
+  | **End Goal** | The final deliverable — what "done" looks like |
+  | **Narrowing** | Explicit constraints — scope limits, exclusions, non-goals |
+</Accordion>
+
+**Example — Prompt Master output using RISEN:**
+
+```text
+Role: You are a senior product strategist with 10 years of experience taking B2B SaaS products from 0 to Series A. You prioritize decisions that reduce time-to-value for the first 100 customers.
+
+Instructions: Build a go-to-market strategy for a new developer tooling product launching in Q3.
+
+Steps:
+1. Define the ICP (ideal customer profile) with 4–5 firmographic and behavioral attributes.
+2. Identify the top 3 acquisition channels ranked by expected CAC for this ICP.
+3. Write a positioning statement using the "For / Who / Our product / Unlike / We" format.
+4. Outline a 90-day launch timeline with weekly milestones.
+5. List 5 success metrics with targets for the first 90 days post-launch.
+
+End Goal: A complete GTM strategy document the founding team can present to their Series A investors and use as the operational playbook for the launch quarter.
+
+Narrowing: Do not include fundraising strategy, hiring plans, or product roadmap. Focus only on market entry and customer acquisition. Assume the product is already built and in private beta.
+```
+
+---
+
+## CRISPE — Capacity, Role, Insight, Statement, Personality, Experiment
+
+CRISPE is built for creative and iterative work. It adds two components that no other text template includes — Personality, which defines the voice the model should write in, and Experiment, which frames the output as a first iteration and invites variation. This makes it the right choice for brand voice work, creative briefs, and any task where the first output is a starting point, not a final answer.
+
+**Routed when:** the task involves creative content, brand voice, iterative drafts, character writing, campaign concepts, or any work where personality and stylistic distinctiveness are requirements.
+
+<Accordion title="CRISPE components">
+  | Component | What it carries |
+  |---|---|
+  | **Capacity** | The model's functional capability for this task — what it's being asked to be able to do |
+  | **Role** | The creative persona or expert identity |
+  | **Insight** | Relevant context, reference points, or creative direction |
+  | **Statement** | The specific creative task |
+  | **Personality** | Voice, tone, stylistic fingerprint — the distinctive quality the output must have |
+  | **Experiment** | Framing that invites variation — treat this as Variant A, offer alternatives |
+</Accordion>
+
+**Example — Prompt Master output using CRISPE:**
+
+```text
+Capacity: You are capable of writing compelling brand microcopy that feels human, specific, and slightly unexpected — the kind of copy that makes a user pause before clicking.
+
+Role: Senior brand copywriter at a creative agency known for work with DTC consumer tech brands.
+
+Insight: The product is a $299 smart water bottle called Vessel. Its core differentiator is a hydration AI that learns your patterns over 7 days and adjusts reminders based on your activity, sleep, and environment. The target user is 28–40, health-conscious, owns premium gear, and is skeptical of "wellness" language.
+
+Statement: Write 5 hero tagline options for the Vessel product page. Each should be under 8 words.
+
+Personality: Dry wit with warmth. Never earnest or preachy. The voice is the friend who already owns everything you want and tells you about it casually. Avoid: wellness, hydration, smart, optimize, journey.
+
+Experiment: Treat these as Variant A. After the 5 taglines, write a one-sentence note on the creative direction you took and offer one alternative direction worth exploring.
+```
+
+---
+
+## Few-Shot
+
+Few-Shot doesn't use an acronym — it's a structural technique that replaces long format instructions with 2–5 concrete input/output examples. When the output format is complex, highly specific, or easier to demonstrate than describe, examples outperform instructions.
+
+**Routed when:** format consistency matters more than instruction length — structured data extraction, classification tasks, schema generation, consistent tone replication across many items, or any task where "do it like this" is clearer than "do it as follows."
+
+<Accordion title="Few-Shot structure">
+  | Section | What it carries |
+  |---|---|
+  | **Task framing** | One sentence explaining the pattern the model should replicate |
+  | **Examples (2–5)** | Concrete input → output pairs that demonstrate the exact format |
+  | **Input** | The actual item to process, clearly separated from the examples |
+
+  Keep examples to 2–5. Fewer than 2 is a single example (which is one-shot, not few-shot). More than 5 adds token cost without measurable accuracy gains for most tasks.
+</Accordion>
+
+**Example — Prompt Master output using Few-Shot:**
+
+```text
+You are extracting structured data from customer support tickets. Replicate the format shown in these examples exactly.
+
+---
+Example 1
+Input: "I've been charged twice for my subscription this month. Order #4421. Please refund ASAP."
+Output:
+{
+  "issue_type": "billing",
+  "urgency": "high",
+  "order_id": "4421",
+  "action_required": "refund"
+}
+
+Example 2
+Input: "The app keeps crashing when I try to open the settings screen on my iPhone 14. No order involved."
+Output:
+{
+  "issue_type": "bug",
+  "urgency": "medium",
+  "order_id": null,
+  "action_required": "investigate"
+}
+
+Example 3
+Input: "Just wanted to say your support team was amazing last week. No issue, just feedback."
+Output:
+{
+  "issue_type": "compliment",
+  "urgency": "low",
+  "order_id": null,
+  "action_required": "none"
+}
+---
+
+Now extract structured data from this ticket:
+"I never received my order from 3 weeks ago. Order #8872. This is the third time I've had to write in."
+```
+
+---
+
+## Chain of Thought
+
+Chain of Thought (CoT) instructs the model to reason step by step before committing to an answer. It is the most widely misused technique in prompt engineering — applied to tasks that don't need it, and applied to models that already do it internally. Prompt Master applies CoT only when it will measurably improve output accuracy.
+
+**Routed when:** the task involves math, formal logic, multi-step debugging, code reasoning, or any problem where a wrong intermediate step produces a confidently wrong final answer.
+
+<Warning>
+  **Never use Chain of Thought on o3, o4-mini, R1, or Qwen3-thinking.** These models perform extended internal reasoning before producing output. Explicit CoT instructions compete with their native reasoning process and degrade output quality. Prompt Master automatically suppresses CoT for these models.
+</Warning>
+
+<Accordion title="CoT structure">
+  | Section | What it carries |
+  |---|---|
+  | **Problem statement** | The full problem with all necessary context |
+  | **CoT trigger** | The phrase that activates step-by-step reasoning |
+  | **Output format** | What the final answer should look like after the reasoning |
+
+  The standard CoT trigger is: *"Think through this step by step before answering."* Prompt Master uses this phrase verbatim — it's been tested across models and consistently activates multi-step reasoning without adding token overhead.
+</Accordion>
+
+<Tip>
+  **When to add Grounding Anchors alongside CoT:** If the reasoning step involves recalling specific facts, statistics, or citations — not just logic — add a Grounding Anchor: *"Use only information you are highly confident is accurate. If you are uncertain about any fact, write [uncertain] in place of the claim."* This prevents the model from generating plausible-sounding but wrong intermediate steps.
+</Tip>
+
+**Example — Prompt Master output using Chain of Thought:**
+
+```text
+A SaaS company has 1,200 monthly active users. Their monthly churn rate is 3.5%. They are acquiring 60 new users per month. The average revenue per user per month is $45.
+
+Think through this step by step before answering:
+
+1. What is the net monthly user growth?
+2. What will the user count be in 6 months?
+3. What will monthly recurring revenue (MRR) be at the 6-month mark?
+4. At what monthly acquisition rate would the company need to grow to reach 2,000 users in 6 months, assuming the same churn rate?
+
+Present your reasoning for each step, then give a final summary table with the four answers.
+```
+
+---
+
+## Template Selection Summary
+
+<Accordion title="Quick routing reference for text templates">
+  | Signal in your request | Template selected |
+  |---|---|
+  | Simple task, one output, no style requirements | RTF |
+  | Professional document, email, report, proposal | CO-STAR |
+  | Multi-phase project with sequential steps | RISEN |
+  | Creative work, brand copy, iterative drafts | CRISPE |
+  | "Do it like these examples" / structured data | Few-Shot |
+  | Math, logic, debugging, multi-step analysis | Chain of Thought |
+  | Target model is o3, o4-mini, R1, Qwen3-thinking | RTF or CO-STAR (CoT suppressed) |
+</Accordion>

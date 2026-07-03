@@ -1,0 +1,267 @@
+---
+title: "Prompt Profiles for Coding Agents and IDE AI Tools"
+sidebarTitle: "Coding Agents"
+description: "Tool-specific prompt rules for Claude Code, Cursor, Windsurf, Cline, GitHub Copilot, Antigravity, Bolt, v0, Lovable, Devin, and SWE-agent."
+---
+
+Coding agents operate differently from chat-based LLMs — they read and write real files, execute terminal commands, install packages, and make decisions between steps without checking in with you. A poorly scoped prompt doesn't just produce a bad answer; it can delete the wrong files, overwrite logic you need, or spin through fifty tool calls before you can intervene. Prompt Master applies agentic prompting rules that define not just what to build, but where to stop, what to leave untouched, and when to ask for human review.
+
+<Warning>
+  **Agentic coding tools have real system access.** Claude Code, Cline, Devin, and similar tools can read and write files, execute shell commands, install dependencies, and interact with external services. A prompt without explicit stop conditions, a forbidden actions list, or a defined scope can cause irreversible changes. Always include scope constraints and stop conditions when using these tools.
+</Warning>
+
+---
+
+## Claude Code
+
+Claude Code is Anthropic's agentic coding tool. Opus 4.8 is the default model. It is exceptionally capable but tends to over-engineer solutions — adding abstraction layers, utility functions, and refactors that were never requested. Two constraints are non-negotiable in every Claude Code prompt.
+
+<Note>
+  Always append **`Only make changes directly requested.`** to every Claude Code prompt. Always include explicit **stop conditions** — without them, Claude Code will continue making decisions until it runs out of context or confidence.
+</Note>
+
+Claude Code uses **Template M** — a structured agentic prompt format with six required sections:
+
+<Accordion title="Template M: Claude Code Agentic Structure">
+  | Section | Purpose | Example |
+  |---|---|---|
+  | **Starting state** | What exists right now | `Express 4.x app, no auth middleware, routes in /src/routes/` |
+  | **Target state** | The exact finished result | `JWT auth on all /api/* routes; public routes unchanged` |
+  | **Allowed actions** | What Claude Code may do | `Edit files in /src/auth/ and /src/middleware/ only` |
+  | **Forbidden actions** | What Claude Code must not do | `Do not modify /src/routes/public.ts, do not install new packages` |
+  | **Stop conditions** | When to pause and wait | `Stop before running any migration; stop if a test fails` |
+  | **Checkpoints** | Human review triggers | `Show me the middleware file before applying it to routes` |
+</Accordion>
+
+### Full Template M Example
+
+```text
+Starting state:
+Express 4.x REST API. No authentication. All routes are currently public.
+Files: /src/routes/users.ts, /src/routes/products.ts, /src/routes/public.ts
+
+Target state:
+JWT authentication applied to all /api/* routes.
+/src/routes/public.ts and /health endpoint remain unauthenticated.
+No new npm packages installed.
+
+Allowed actions:
+- Edit files in /src/middleware/ and /src/routes/ only
+- Create /src/middleware/auth.ts if it does not exist
+
+Forbidden actions:
+- Do not modify /src/routes/public.ts
+- Do not install packages
+- Do not run database migrations
+- Do not edit test files
+
+Stop conditions:
+- Stop before applying middleware to any route file; show me the middleware first
+- Stop if any existing test fails after your changes
+
+Only make changes directly requested.
+```
+
+### Additional Claude Code Rules
+
+- **Session hygiene** — start a new Claude Code session for each distinct task; accumulated context from prior tasks causes drift and unintended changes
+- **Scope to specific files** — always name the exact files that may be changed; open-ended scope causes unwanted edits across the codebase
+- **Human review triggers** — for high-risk operations (schema changes, auth logic, environment config), require Claude Code to show you the change before applying it
+
+---
+
+## Cursor / Windsurf
+
+Cursor and Windsurf are IDE-integrated AI tools. They work best with a precise six-part structure that pins the change to an exact location in the codebase and defines when the task is complete.
+
+### File-Scope Template
+
+```text
+File: src/components/UserProfile.tsx
+Function: renderAvatarSection()
+Current behavior: Renders a static placeholder image when user.avatar is null
+Desired change: Fetch avatar from /api/users/{id}/avatar; show skeleton loader during fetch
+Do not touch: Authentication logic, props interface, CSS classes
+Language/version: TypeScript 5.x / React 18
+Done when: Avatar loads from API on mount; skeleton shows during loading state; null avatar still renders placeholder
+```
+
+**Required fields for every Cursor/Windsurf prompt:**
+
+| Field | Required | Notes |
+|---|---|---|
+| File path | ✅ | Exact relative path from project root |
+| Function/component name | ✅ | Pin the change to a specific scope |
+| Current behavior | ✅ | What it does now |
+| Desired change | ✅ | What it should do instead |
+| Do-not-touch list | ✅ | Files, functions, props, classes off-limits |
+| Language/version | ✅ | e.g. `TypeScript 5.x`, `Python 3.12` |
+| `Done when:` | ✅ | Observable completion condition |
+
+---
+
+## Cline
+
+Cline is an agentic VS Code extension that can run terminal commands, edit files, and install packages directly in your editor. Like Claude Code, it needs explicit scope and gate conditions — but it has one additional critical constraint.
+
+<Warning>
+  Always include **`Ask before running terminal commands`** in every Cline prompt. Without this, Cline may execute shell commands, install packages, or run scripts automatically.
+</Warning>
+
+- **Starting state + target state** — same as Claude Code Template M; define where you are and where you're going
+- **File scope** — list the exact files Cline may read and edit
+- **Stop conditions** — define when Cline should pause before continuing
+- **Approval gates** — require confirmation before any destructive or irreversible action
+- **`Ask before running terminal commands`** — mandatory on every prompt
+
+```text
+Starting state:
+Next.js 14 app. /app/api/contact/route.ts exists but returns a 501 stub.
+No email service configured.
+
+Target state:
+/app/api/contact/route.ts sends form submissions via Resend API.
+Environment variable RESEND_API_KEY already exists in .env.local.
+
+File scope:
+- Edit: /app/api/contact/route.ts only
+- Read: /app/contact/page.tsx (do not edit)
+
+Stop conditions:
+- Stop if RESEND_API_KEY is not found in process.env
+- Stop before installing any new package
+
+Ask before running terminal commands.
+```
+
+---
+
+## GitHub Copilot
+
+GitHub Copilot's suggestion quality is entirely dependent on the code immediately surrounding the cursor. It does not use long conversational context — it uses local code signals. The most reliable technique is to write the full function signature and a detailed docstring immediately before invoking a suggestion.
+
+- **Exact function signature before invocation** — Copilot reads the signature as the primary instruction
+- **Docstring with types, return value, and edge cases** — more specific docstrings produce dramatically better suggestions
+- **Describe input types and return type explicitly** — Copilot infers from the signature; make it unambiguous
+- **Describe edge cases in the docstring** — `handles empty input`, `raises ValueError if x < 0`, `returns None when not found`
+- **The prompt IS the code context** — position your cursor immediately after the docstring before accepting a suggestion
+
+```python
+def calculate_compound_interest(
+    principal: float,
+    annual_rate: float,
+    compounds_per_year: int,
+    years: int
+) -> float:
+    """
+    Calculate compound interest.
+
+    Args:
+        principal: Initial investment amount in dollars. Must be > 0.
+        annual_rate: Annual interest rate as a decimal (e.g., 0.05 for 5%). Must be >= 0.
+        compounds_per_year: Number of compounding periods per year. Must be >= 1.
+        years: Number of years to compound. Must be >= 0.
+
+    Returns:
+        Final amount after compound interest as a float.
+
+    Raises:
+        ValueError: If principal <= 0 or compounds_per_year < 1 or years < 0.
+
+    Example:
+        >>> calculate_compound_interest(1000, 0.05, 12, 10)
+        1647.01
+    """
+    # Copilot suggestion triggers here
+```
+
+---
+
+## Antigravity (Google, Gemini 3 Pro)
+
+Antigravity is Google's agentic AI tool powered by Gemini 3 Pro. It uses task-based prompting and has browser automation built in. The recommended approach is to prompt for an Artifact (a self-contained deliverable) first, then use browser automation for tasks that require it.
+
+- **Task-based prompting** — describe the complete task as a unit of work, not a sequence of steps
+- **Prompt for Artifact first** — request a concrete, self-contained output (document, code file, structured data) before complex automation
+- **Browser automation is built-in** — specify if the task requires web research, form interaction, or page navigation
+- **Specify autonomy level** — define how much Antigravity should decide independently vs. confirm with you
+
+```text
+Task: Research the top 5 open-source vector databases by GitHub stars (current).
+Artifact: Return a markdown table with columns: Name, Stars, License, Embedding Support, Managed Cloud Option.
+Autonomy: Search the web to find current data. Do not make assumptions about star counts — use live data only.
+Stop: If any source is ambiguous or paywalled, note it in the table and move on.
+```
+
+---
+
+## Bolt / v0 / Lovable / Figma Make / Google Stitch
+
+These are full-stack UI and application generators. They scaffold entire projects from a prompt — which means an under-scoped prompt will generate a complete application with frameworks, auth, database, and features you didn't ask for. The primary rule is **scope down explicitly**.
+
+<Tip>
+  Full-stack generators default to a "kitchen sink" approach — they add auth, database connections, routing, and deployment config by default. Always specify exactly what NOT to scaffold, and always name your stack and version.
+</Tip>
+
+- **Scope down explicitly** — list what you want built and what you don't
+- **Specify stack and version** — `React 18 + TypeScript`, `Next.js 14 App Router`, `Vue 3 + Vite`
+- **State what NOT to scaffold** — `no authentication`, `no database`, `no deployment config`, `no testing setup`
+- **Define the single deliverable** — these tools work best with one focused output per prompt
+
+```text
+Build a single-page contact form component.
+
+Stack: React 18 + TypeScript + Tailwind CSS
+Fields: Name (text), Email (email), Message (textarea), Submit button
+Validation: All fields required; email format check; show inline error messages
+On submit: POST to /api/contact — show success message or error message from response
+
+Do NOT scaffold:
+- Authentication
+- Database or ORM
+- Backend API route
+- Routing or navigation
+- Testing setup
+- Deployment configuration
+
+Deliverable: A single ContactForm.tsx component file only.
+```
+
+---
+
+## Devin / SWE-agent
+
+Devin and SWE-agent are fully autonomous software engineering agents. They can clone repositories, navigate codebases, run tests, create branches, and submit pull requests with minimal check-ins. This autonomy makes forbidden actions and filesystem scope non-negotiable.
+
+<Warning>
+  Devin and SWE-agent operate with high autonomy. Without a forbidden actions list and filesystem scope, they may modify unintended files, install packages, change configuration, or interact with external services. Define both in every prompt.
+</Warning>
+
+- **Explicit starting state + target state** — same Template M structure as Claude Code; define both precisely
+- **Forbidden actions list is critical** — specify every category of action the agent must not take
+- **Scope the filesystem** — name which directories and files the agent may access; exclude everything else
+- **Define the completion artifact** — specify what the final deliverable is (PR, diff, test results, modified file)
+
+```text
+Starting state:
+GitHub repo: org/backend-api, branch: main
+Function: process_payment() in /src/payments/processor.py
+Current issue: No retry logic on Stripe API timeout (raises exception on first failure)
+
+Target state:
+process_payment() retries up to 3 times on stripe.error.Timeout with exponential backoff (1s, 2s, 4s).
+All existing tests pass. New unit tests cover retry behavior.
+
+Filesystem scope:
+- Read/write: /src/payments/processor.py, /tests/test_processor.py only
+- Read only: /src/payments/stripe_client.py
+
+Forbidden actions:
+- Do not modify any file outside the listed scope
+- Do not change function signatures or return types
+- Do not install new packages
+- Do not push to any branch; deliver a local diff only
+- Do not modify environment configuration
+
+Deliverable: A unified diff file ready for pull request review.
+```

@@ -1,0 +1,103 @@
+---
+title: "Using Memory Blocks to Preserve Session Context"
+sidebarTitle: "Memory Block"
+description: "Memory Blocks prevent AI models from forgetting prior decisions mid-session — learn the exact format, placement rules, and why most re-prompts exist because the model forgot."
+---
+
+The most invisible source of prompt failure in long sessions is not bad instructions — it's amnesia. Every time you send a new prompt, the model processes it against whatever fits in its context window. In short sessions that means everything. In longer ones, it means the model quietly forgets that you already chose a tech stack, already ruled out an approach that failed, or already locked an architectural decision three messages ago. The result is an output that contradicts prior decisions, re-suggests something you already rejected, or ignores constraints that were established earlier. Memory Blocks solve this by explicitly packaging the session's critical decisions and prepending them to every new prompt that depends on them.
+
+## What a Memory Block Contains
+
+A Memory Block is a structured prose section that captures the four categories of information most likely to drift out of the model's active attention as a session grows: established stack and tool decisions, locked architecture choices, active constraints, and things that were already tried and failed.
+
+```markdown
+## Context (carry forward)
+- Stack and tool decisions established: [list confirmed choices]
+- Architecture choices locked: [list finalized patterns or structures]
+- Constraints from prior turns: [list hard rules or prohibitions in effect]
+- What was tried and failed: [list rejected approaches and why]
+```
+
+Each bullet is populated only with information that is genuinely settled. If a decision is still in flux, it does not belong in the Memory Block — the block is for facts, not hypotheses. Keeping it tight ensures the model treats everything in it as ground truth rather than a suggestion.
+
+<Note>
+  The Memory Block is written in plain markdown. It does not use XML tags, special delimiters, or tool-specific syntax. This keeps it portable across target tools and easy to scan.
+</Note>
+
+## Where to Place It
+
+The Memory Block must appear in the first 30% of the prompt. Not near the top — in the first 30%, specifically. This placement rule exists because of how attention works in transformer-based models: content at the beginning and end of a prompt receives reliably stronger attention than content in the middle. A Memory Block buried halfway through a long prompt will be read and then functionally ignored when the model reaches the actual instruction block.
+
+<Warning>
+  Placing the Memory Block after your main instructions defeats its purpose entirely. By the time the model finishes processing a long instruction section, context from a trailing Memory Block has already been deprioritized. Always prepend — never append.
+</Warning>
+
+The recommended structure is:
+
+```
+[Memory Block — first 30%]
+
+[Main instructions]
+
+[Output format specification]
+```
+
+For short prompts (under 300 tokens), the Memory Block can appear at the very top without the 30% rule being a practical concern. For longer prompts, actively count: if your main instructions are 500 words, your Memory Block should appear before the 150-word mark.
+
+## Why It Matters: Attention Decay
+
+Transformer models do not read prompts the way humans read documents — sequentially, with equal attention throughout. Attention is not uniformly distributed. The beginning and end of a context window receive disproportionately strong weight. The middle, especially in long prompts, is where information goes to be technically processed but practically forgotten.
+
+This is why re-prompts happen. You tell the model your stack in message two. By message seven, the model generates something that contradicts it. You did not fail to communicate — the model's attention decayed. The Memory Block counters this by taking the most important settled facts out of the linear history and re-anchoring them at the high-attention zone of every new prompt that builds on them.
+
+<Tip>
+  If you find yourself correcting the model for contradicting something it "already knows," that is a Memory Block signal. Instead of re-explaining, extract the overlooked decision into a Memory Block and prepend it to your next prompt. The correction rate drops immediately.
+</Tip>
+
+## Before and After: The Same Prompt, With and Without a Memory Block
+
+The following example shows a mid-session prompt for a software development task. The session has already established a tech stack, rejected one approach, and locked an architectural pattern. Without a Memory Block, all of that prior work is invisible to the model.
+
+### Without a Memory Block
+
+```text
+Write a data fetching hook for the user profile page. The hook should 
+handle loading states, error states, and cache the result for 5 minutes. 
+Return the user object and a refresh function.
+```
+
+This prompt is technically complete for a first message. Mid-session, it is missing everything. The model does not know the established stack, does not know that a REST-based approach was already tried and rejected, and does not know the architectural pattern that was locked. It will make fresh assumptions on all three — and some of those assumptions will contradict decisions that are supposed to be settled.
+
+**Likely failure modes:** The model suggests a REST implementation (already rejected), uses a state management library that was not chosen, or returns data in a shape that conflicts with the locked architecture.
+
+### With a Memory Block
+
+```text
+## Context (carry forward)
+- Stack and tool decisions established: React 18, TypeScript, TanStack Query v5, 
+  Zod for validation, no Redux or additional state management libraries
+- Architecture choices locked: all data fetching via TanStack Query hooks; 
+  query keys follow [entity, id, subresource] tuple pattern
+- Constraints from prior turns: REST-based fetching was rejected — all API 
+  calls go through the GraphQL client established in session turn 2
+- What was tried and failed: direct fetch() with useEffect — replaced with 
+  TanStack Query to eliminate race conditions
+
+Write a data fetching hook for the user profile page. The hook should 
+handle loading states, error states, and cache the result for 5 minutes. 
+Return the user object and a refresh function.
+```
+
+The instruction block is identical. The Memory Block has transformed it from an ambiguous mid-session prompt into a precisely grounded one. The model now knows the exact stack to use, the query key pattern to follow, that GraphQL is the required transport, and that the useEffect approach must not reappear.
+
+**Result:** The model produces a TanStack Query hook, using the `[entity, id]` key pattern, calling the GraphQL client, with no REST drift and no useEffect regression. First attempt, no corrections needed.
+
+## When Prompt Master Adds a Memory Block Automatically
+
+Prompt Master monitors the session for decisions worth preserving. When the [intent extraction](/how-it-works/intent-extraction) step detects that the current prompt is part of a session with meaningful history — prior tool choices, locked patterns, rejected approaches — it automatically populates a Memory Block from that history and prepends it to the new prompt.
+
+You do not need to manually track what has been decided. Prompt Master reads the session context dimension and constructs the block from what it finds. If the session is new or the task is self-contained, no Memory Block is added — blank Memory Blocks add tokens without signal.
+
+<Note>
+  Memory Blocks are not permanent — they are constructed fresh for each prompt that needs them. If a decision from turn 2 is no longer relevant by turn 15, it will not appear in the Memory Block for turn 15. The block carries forward only what is still in scope.
+</Note>

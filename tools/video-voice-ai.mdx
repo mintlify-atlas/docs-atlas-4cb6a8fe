@@ -1,0 +1,223 @@
+---
+title: "Prompt Profiles for Video, Voice, and 3D AI Tools"
+sidebarTitle: "Video & Voice AI"
+description: "Tool-specific prompt rules for Sora, Runway Gen-3, Kling, LTX Video, Dream Machine, ElevenLabs, Meshy, Tripo, Rodin, Unity AI, and BlenderGPT."
+---
+
+Video, voice, and 3D AI tools sit at the edges of what most prompt guides cover — yet they have some of the most distinct and unforgiving syntax requirements. Sora needs film direction language, not scene description prose. ElevenLabs ignores adjective-laden descriptions entirely and responds to emotion markers and SSML-like pacing controls. ComfyUI-style 3D tools like Meshy and Rodin need export format specifications alongside the visual description. Prompt Master routes each of these tools through purpose-built frameworks drawn from how their underlying models actually process input.
+
+---
+
+## Sora
+
+Sora generates video by interpreting prompts as film direction instructions. The camera movement specification is not decorative — it is a primary input that shapes the entire shot. A prompt that describes a scene without a camera directive will produce an unpredictable default movement.
+
+- **Direct the shot, not just the scene** — write as a film director giving shot instructions, not as an image prompt
+- **Camera movement is critical** — always specify: `static`, `slow dolly in`, `crane shot rising`, `tracking shot left to right`, `handheld`, `aerial pullback`
+- **Describe duration and pacing** — `5-second shot`, `slow motion`, `real-time`, `time-lapse over 10 seconds`
+- **Include lighting, time of day, and weather as production context** — these are treated as controllable production variables, not scene flavor
+
+```text
+Cinematic tracking shot following a lone wolf running through a dense pine forest at dusk.
+Camera: low-angle tracking shot at ground level, moving with the wolf at constant speed.
+Lighting: golden hour, shafts of light breaking through the trees, long shadows.
+Motion: wolf running at full speed, snow kicking up with each stride.
+Duration: 6-second continuous shot, no cuts.
+Style: photorealistic, 4K, film grain, anamorphic lens feel.
+```
+
+### Camera Movement Reference
+
+| Movement | Description | Use Case |
+|---|---|---|
+| `static` | Camera does not move | Portraits, dialogue, still subjects |
+| `slow dolly in` | Gradual forward push | Building tension, reveal shots |
+| `crane shot rising` | Camera lifts upward | Epic reveals, environmental scale |
+| `tracking shot` | Follows a moving subject | Action, running, vehicles |
+| `handheld` | Subtle organic shake | Documentary feel, intimacy |
+| `aerial pullback` | Pulls back and up from above | Establishing scale, endings |
+| `pan left/right` | Horizontal rotation on axis | Reveals, following a gaze |
+
+---
+
+## Runway Gen-3
+
+Runway Gen-3 responds well to cinematic production language — the vocabulary of film production rather than consumer photography. Reference film styles and cinematographers to anchor the visual language.
+
+- **Use cinematic language** — `wide establishing shot`, `close-up on hands`, `medium two-shot`, `rack focus from foreground to background`
+- **Reference film styles as anchors** — `in the visual style of Denis Villeneuve`, `Blade Runner color palette`, `Wes Anderson symmetrical composition`
+- **Describe color grading explicitly** — `desaturated with teal and orange grade`, `high contrast black and white`, `warm golden tones`
+- **Specify lens and depth of field** — `anamorphic lens`, `wide angle with distortion`, `telephoto compression`, `deep focus`
+
+```text
+Wide establishing shot of a brutalist government building at night.
+Visual reference: early Christopher Nolan — deep focus, cold blue-grey tones.
+Camera: static wide shot, symmetrical composition, slight upward tilt.
+Lighting: harsh sodium vapor streetlights casting amber pools, deep shadows on the building facade.
+Color grade: desaturated, cold, teal shadows with amber highlights.
+Lens: anamorphic, slight lens flare from the nearest streetlight.
+Duration: 4-second static hold, subtle camera breathing.
+```
+
+---
+
+## Kling
+
+Kling is a video AI model with particular strength in realistic human and physical motion. When the subject involves a person moving, body movement description is the highest-priority input — vague motion descriptions produce generic, unconvincing movement.
+
+- **Describe body movement explicitly** — `slowly raises both arms above her head`, `turns to look over her left shoulder, hair sweeping across face`, `walks with a slight limp, favoring the right leg`
+- **Strong at realistic human motion** — prioritize detailed movement descriptions for any human subject
+- **Physical interaction details** — describe how subjects interact with objects and environment: `fingers trailing along the surface of the wall`, `feet splashing through shallow puddles`
+- **Combine with environmental motion** — `wind moving through grass`, `rain falling at a 30-degree angle`
+
+```text
+Medium shot of a ballet dancer in a white studio.
+Motion: She begins with arms at her sides, slowly raises both arms into fifth position above her head, then transitions into a slow pirouette — one full rotation, controlled, arms extended.
+Body: Tall posture, pointed toes throughout, slight lean back at the peak of the arm raise.
+Environment: Studio is bare, white walls, hardwood floor reflecting soft diffused window light from the left.
+Camera: Static medium shot, dancer centered in frame.
+Duration: 8 seconds, real-time speed.
+```
+
+---
+
+## LTX Video
+
+LTX Video is a fast, prompt-sensitive video model. It responds to concise, visual, high-signal descriptions — elaborate prose reduces coherence rather than improving it. Always specify resolution and motion intensity.
+
+- **Concise and visual** — keep descriptions tight; every word should be a distinct visual signal
+- **Specify resolution** — `720p`, `1080p`, `1920x1080`
+- **Specify motion intensity** — `low motion` (slow, subtle), `medium motion` (natural), `high motion` (fast-paced, energetic)
+- **Fast iteration tool** — LTX Video's speed makes it well-suited for quick concept testing before committing to a slower model
+
+```text
+Aerial view over a dense city at night, rain falling, neon signs reflecting on wet streets below.
+Resolution: 1080p
+Motion: low motion — subtle rain movement, slow camera drift downward
+Duration: 5 seconds
+Style: cinematic, photorealistic
+```
+
+---
+
+## Dream Machine (Luma)
+
+Dream Machine by Luma AI produces high-quality video with strong handling of lighting and lens characteristics. Referencing specific lighting setups, lens types, and color grading approaches produces more controlled results than generic descriptions.
+
+- **Reference lighting setups** — `three-point lighting`, `Rembrandt lighting`, `rim lighting from behind`, `practical lighting only (candles and lamps)`
+- **Specify lens type** — `50mm prime`, `anamorphic widescreen`, `fisheye`, `telephoto 200mm`
+- **Color grading styles** — `bleach bypass`, `cross-processed`, `Kodak Portra film emulation`, `high-key low contrast`
+- **Combine into a production package** — each of these elements works additively; specifying all three (lighting + lens + grade) gives the model precise anchors
+
+```text
+Interior of a jazz bar late at night, one musician playing saxophone on a small stage.
+Lighting: Rembrandt lighting from stage left, practical amber bulbs above the bar in the background, heavy shadow in the foreground.
+Lens: 85mm prime, wide open aperture, shallow depth of field — musician sharp, background bokeh.
+Color grade: warm, slightly desaturated, Kodak Portra 400 film emulation.
+Camera: Slow dolly in toward the musician, starting from mid-room.
+Duration: 7 seconds.
+```
+
+---
+
+## ElevenLabs
+
+ElevenLabs generates speech audio from text. The critical distinction from every other AI tool in this guide is that **descriptive prose does not work** — writing adjectives about how you want the voice to sound has no effect. ElevenLabs responds to SSML-like inline markers, explicit emotion tags, and pacing controls embedded in or alongside the speech text.
+
+<Warning>
+  **Prose descriptions of voice quality don't affect ElevenLabs output.** Writing "speak in a calm, warm, reassuring tone" in a system prompt or instruction field has minimal effect. You must use inline markers, pauses, and emotion specifications to control delivery.
+</Warning>
+
+- **Emotion tag** — specify the emotional register: `[excited]`, `[somber]`, `[warm and reassuring]`, `[urgent]`, `[sarcastic]`
+- **Pacing** — `[slow]`, `[fast]`, `[deliberate pause before this word]`
+- **Emphasis markers** — use `*word*` or `[emphasis]word[/emphasis]` for stressed syllables
+- **Speech rate** — specify words-per-minute or relative rate: `speech rate: 0.85` (slower), `speech rate: 1.1` (slightly faster)
+- **SSML-like markers** — `<break time="1s"/>` for pauses, `<emphasis level="strong">word</emphasis>` for stress
+
+```text
+Emotion: warm, sincere, slightly reflective
+Speech rate: 0.9 (slightly slower than normal)
+Emphasis: place emphasis on "every" and "you"
+
+Text:
+"We built this for <emphasis>every</emphasis> person who ever felt like the tools weren't made for <emphasis>them</emphasis>. <break time="0.8s"/> That changes today."
+```
+
+<Tip>
+  For long-form narration, break the script into emotional segments and specify the emotion at the start of each segment. A single emotion tag for a 5-minute script will drift — re-anchor every 30–60 seconds.
+</Tip>
+
+---
+
+## 3D AI — Meshy / Tripo / Rodin
+
+Meshy, Tripo, and Rodin generate 3D models from text prompts. They share a common prompt structure that combines visual description with technical specification. The export format must always be specified — these tools support different formats and the default is not always the most compatible.
+
+- **Style keyword first** — `realistic`, `stylized`, `low-poly`, `hard surface`, `organic`, `cartoon`, `photorealistic scan`
+- **Subject and key features** — describe the primary object and its distinctive characteristics
+- **Material and texture** — `polished chrome`, `worn leather`, `rough stone`, `iridescent scales`, `brushed aluminum`
+- **Technical spec** — polygon budget (`<10k tris for game-ready`), texture resolution (`4K PBR textures`)
+- **Negative prompt** — exclude unwanted features: `no floating parts, no disconnected geometry`
+- **Specify export format** — `GLB` (web/Three.js), `FBX` (Unreal/Unity), `STL` (3D printing), `OBJ` (general)
+
+```text
+Style: realistic, game-ready hard surface
+Subject: medieval knight helmet, full-face visor with narrow vision slits, cheek guards with rivets, battle damage with dents and scratches on the left side
+Material: aged steel, rust staining near the joints, dark patina on flat surfaces, polished highlights on raised edges
+Technical: under 8,000 triangles, 4K PBR texture maps (albedo, normal, roughness, metalness)
+Negative: no floating geometry, no disconnected parts, no organic forms
+Export format: FBX
+```
+
+### Export Format Reference
+
+| Format | Best For |
+|---|---|
+| `GLB` | Web (Three.js, Babylon.js), AR/VR |
+| `FBX` | Unreal Engine, Unity, Maya, 3ds Max |
+| `STL` | 3D printing (geometry only, no texture) |
+| `OBJ` | General compatibility, Blender import |
+| `USDZ` | Apple AR Quick Look, iOS/macOS |
+
+---
+
+## Unity AI (Unity 6.2+)
+
+Unity AI integrates directly into the Unity Editor through a command interface. Three slash commands drive the interaction: `/ask` for questions, `/run` for task execution, and `/code` for code generation.
+
+- **`/ask`** — use for questions about Unity APIs, best practices, or debugging guidance
+- **`/run`** — use for tasks that require Unity AI to perform editor actions (creating assets, configuring components)
+- **`/code`** — use for C# script generation; specify component type, behavior, and Unity version
+
+```text
+/code
+Generate a Unity 6.2 C# MonoBehaviour that handles player health.
+Component: PlayerHealth
+- int maxHealth = 100, int currentHealth starts at maxHealth
+- Method: TakeDamage(int amount) — reduces currentHealth, clamps to 0, triggers OnDeath() if 0
+- Method: Heal(int amount) — increases currentHealth, clamps to maxHealth
+- UnityEvent OnDeath — assigned in Inspector
+- Serialize all fields
+```
+
+---
+
+## BlenderGPT
+
+BlenderGPT generates Python scripts that run in Blender's scripting environment via the Blender API (bpy). Every prompt must specify geometry, material, and scene context — without these, the generated script will overwrite your scene defaults or produce geometry incompatible with your existing setup.
+
+- **BlenderGPT generates Python scripts** — the output is a `bpy` Python script, not visual instructions
+- **Specify geometry context** — `create from scratch`, `modify existing mesh named "Cube"`, `add to scene at origin`
+- **Specify material context** — `create a new Principled BSDF material`, `modify the existing material named "Metal_01"`
+- **Specify scene context** — `current scene has one point light and a camera at (0, -10, 5)`, `empty scene`
+- **Name objects explicitly** — reference exact Blender object names to avoid modifying the wrong mesh
+
+```text
+Generate a Blender Python (bpy) script for Blender 4.x.
+
+Task: Create a procedural stone pillar mesh from scratch.
+Geometry: Cylinder base, 8 sides, height 4m, radius 0.3m. Add a Loop Cut at the midpoint. Scale the top loop to 0.85x to create a slight taper.
+Material: Create a new Principled BSDF material named "Stone_Pillar". Set Base Color to (0.35, 0.33, 0.30). Roughness 0.85. Specular 0.1.
+Scene context: Empty scene. Place the pillar at world origin (0, 0, 0).
+Output: Complete bpy script with comments. No UI operators — use bmesh or direct bpy.ops only.
+```

@@ -1,0 +1,170 @@
+---
+title: "Prompt Master Changelog: All Versions and Release Notes"
+sidebarTitle: "Changelog"
+description: "A complete version history of Prompt Master from initial release to 1.7.0, covering every architectural shift, new technique, and tool-routing update."
+---
+
+Prompt Master has gone through eight releases since its initial launch. The early versions expanded coverage and fixed rough edges. The middle versions made a decisive architectural shift — removing fabrication-prone techniques and rebuilding around a positional prompt structure designed for modern attention models. The recent versions have focused on keeping tool-routing advice current as the model landscape changes rapidly. This page documents every version with enough context to understand not just what changed but why.
+
+<Note>
+  **Current version: 1.7.0** — Opus 4.8 compatibility, version-aware Claude 4.x routing, and generalized durable advice across Claude 4.6/4.7/4.8.
+</Note>
+
+---
+
+## Version Summary
+
+| Version | Focus | Key Change |
+|---------|-------|------------|
+| **1.7.0** | Opus 4.8 compatibility | Version-aware Claude 4.x routing; durable advice generalized |
+| **1.6.0** | Opus 4.7 update | Template M added; Claude and Claude Code routing updated for 4.7 |
+| **1.5.0** | Tool routing expansion | Agentic AI and 3D Model AI routing; copywriting placeholders |
+| **1.4.0** | Image editing and ComfyUI | Reference image editing detection; Prompt Decompiler mode |
+| **1.3.0** | PAC2026 architecture | 30/55/15 positional weighting; silent routing |
+| **1.2.0** | Attention architecture rebuild | Fabrication-prone techniques removed; references folder |
+| **1.1.0** | Memory and patterns | Memory block system; 35 anti-patterns |
+| **1.0.0** | Initial release | Core pipeline, five safe techniques, output format |
+
+---
+
+## v1.7.0 — Opus 4.8 Compatibility
+
+**Released:** Current version
+
+Claude 4.x routing is now version-aware. Instead of routing advice targeting a specific Claude 4 model, guidance is generalized to remain durable across Claude 4.6, 4.7, and 4.8. Opus 4.8 is added as an explicit profile and marked as the current default. Opus 4.7 is retained and labeled.
+
+**Why it matters:** Model versions in the Claude 4 family have meaningfully different behavior profiles — particularly around literalism, reasoning depth, and how they handle effort-level instructions. Hardcoding advice to a single version meant guidance became stale the moment a new model shipped. The v1.7 approach generalizes what is stable across versions while documenting what is version-specific.
+
+**Changes in this release:**
+
+- Opus 4.8 profile added (current default)
+- Opus 4.7 profile retained and clearly labeled
+- Durable advice generalized across 4.6/4.7/4.8
+- De-hardcoded the effort-level note — effort level is now managed by the tool harness, not embedded in the prompt
+- Template M and pattern 36 extended to cover both 4.7 and 4.8
+- Fixed a stray sentence fragment in patterns.md
+
+---
+
+## v1.6.0 — Opus 4.7 Update
+
+Dedicated routing for Claude Opus 4.7, reflecting its distinct behavior compared to earlier Claude 4 models. Template M (Opus 4.7 Task Brief) introduced as a new template. Claude Code routing updated to reflect 4.7-specific characteristics.
+
+**Why it matters:** Opus 4.7 introduced stronger adaptive thinking and more literal instruction-following than prior Claude releases. Prompts optimized for Claude 3 or early Claude 4 could produce unexpectedly short or under-elaborated responses on 4.7 without compensating guidance. v1.6 captures those differences in the routing layer so users don't have to discover them through trial and error.
+
+**Changes in this release:**
+
+- Template M added: Opus 4.7 Task Brief
+- Claude routing updated for literalism, adaptive thinking, xhigh effort level, and session hygiene
+- Claude Code routing updated in parallel
+- Patterns 36 and 37 added
+
+---
+
+## v1.5.0 — Extended Tool Routing
+
+Significant expansion of tool coverage, with new routing profiles for Agentic AI tools and 3D Model AI tools. Fixes to the skill description length and removal of token estimates from generated output. Instruction layer and copywriting placeholders introduced.
+
+**Why it matters:** As Prompt Master's user base grew, it became clear that prompting for agentic workflows and 3D generation tools required fundamentally different optimization strategies than standard LLM prompts. Adding those routing profiles meant users targeting those tool categories got purpose-built guidance rather than a generic fallback.
+
+**Changes in this release:**
+
+- Agentic AI routing profile added
+- 3D Model AI routing profile added
+- Skill description fixed to 189 characters (correct display length)
+- Token estimate removed from output (was noise, not signal)
+- Instruction layer added to generation pipeline
+- Copywriting prompt placeholders ([TONE], [AUDIENCE], [BRAND VOICE], [PRODUCT NAME]) introduced
+
+---
+
+## v1.4.0 — Image Editing and ComfyUI
+
+Reference image editing detection added so Prompt Master can recognize when a user is editing an existing image rather than generating from scratch — and adjust the prompt accordingly. ComfyUI added as a supported tool with its own routing profile. Prompt Decompiler mode introduced.
+
+**Why it matters:** Image generation and image editing require structurally different prompts. A generation prompt builds a scene from description; an editing prompt must describe a delta from an existing image while preserving what should stay the same. Without detection, Prompt Master was applying generation-style optimization to editing tasks and producing prompts that overwrote too much.
+
+**Changes in this release:**
+
+- Reference image editing detection added to intent extraction
+- ComfyUI routing profile added (positive/negative split per checkpoint)
+- Prompt Decompiler mode introduced
+- Trigger description fixed to invoke correctly inside Claude Code
+- Three new templates added to the references folder
+
+---
+
+## v1.3.0 — PAC2026 Positional Structure
+
+Prompt Master was rebuilt around the PAC2026 positional weighting structure — a 30/55/15 split that places the highest-weight content in the positions modern attention models attend to most reliably. Silent routing replaces the previous user-facing framework selection step. The references folder is introduced as a separate organizational layer.
+
+**Why it matters:** This is the most significant architectural change in Prompt Master's history. Research into transformer attention patterns shows that context position affects how reliably a model uses information. PAC2026 operationalizes that insight: 30% of prompt weight goes to the opening, 55% to the middle (highest-weight zone), and 15% to the close. Silent routing eliminated a source of user error — you no longer had to choose a framework.
+
+**Changes in this release:**
+
+- Rebuilt on PAC2026 30/55/15 positional weighting
+- Silent routing replaces user-facing framework selection
+- References folder introduced to separate templates and patterns from the main skill logic
+
+<Accordion title="PAC2026 positional weighting explained">
+
+The 30/55/15 split means:
+
+**30% — Opening:** Priming, role assignment, and framing that sets the model's initial state. This is where identity and context go.
+
+**55% — Middle:** The task, constraints, and examples. This is the highest-weight zone where transformer attention is strongest and most reliable.
+
+**15% — Close:** Output format instructions. Attended to reliably when kept concise and placed last.
+
+Silent routing means users never see this structure being applied. You describe what you want; Prompt Master handles the positioning.
+
+</Accordion>
+
+---
+
+## v1.2.0 — Attention Architecture Rebuild
+
+Prompt Master was restructured around a model of how transformer attention actually works, rather than how prompt engineering folklore assumed it worked. Four techniques were removed entirely — Tree of Thought, Graph of Thought, Universal Self-Consistency, and prompt chaining — on fabrication risk grounds.
+
+**Why it matters:** v1.2 was the first release where Prompt Master explicitly drew a line between techniques that work reliably in a single forward pass and techniques that require infrastructure that doesn't exist in standard tools. Removing the fabrication-prone techniques was a correction: users who had been getting confident but wrong outputs from ToT-style prompts saw immediate improvements.
+
+**Changes in this release:**
+
+- Rebuilt around transformer attention architecture principles
+- Tree of Thought removed (simulated branching, no real parallel execution)
+- Graph of Thought removed (requires external graph engine)
+- Universal Self-Consistency removed (requires independent sampling passes)
+- Prompt chaining as a layered technique removed (compounds fabrication risk)
+- Templates and patterns moved to references folder
+
+---
+
+## v1.1.0 — Memory Block System and Pattern Library
+
+Tool coverage was substantially expanded. A memory block system was introduced to carry relevant context across a session. The credit-killing patterns library shipped with 35 documented anti-patterns — the most common ways prompts fail and how to avoid them.
+
+**Why it matters:** Before v1.1, Prompt Master optimized individual prompts without any mechanism to carry context between interactions. The memory block system addressed that gap, making multi-turn optimization sessions coherent. The 35-pattern library gave Prompt Master a formal basis for recognizing and fixing bad prompts rather than just writing new ones.
+
+**Changes in this release:**
+
+- Tool coverage expanded across LLMs, coding agents, and image tools
+- Memory block system introduced for session context
+- 35 credit-killing anti-patterns documented and integrated
+
+---
+
+## v1.0.0 — Initial Release
+
+Initial public release of Prompt Master. Core prompt generation pipeline with intent extraction, basic tool routing, and the five safe techniques: Role Assignment, Few-Shot Examples, XML Structural Tags, Grounding Anchors, and Chain of Thought. Output format standardized: copyable prompt block, target and optimization line, optional setup note.
+
+**What shipped:**
+
+- Core 7-step prompt generation pipeline
+- Intent extraction (9 dimensions)
+- Basic tool routing for LLMs and coding tools
+- Five safe techniques (Role Assignment, Few-Shot, XML Tags, Grounding Anchors, Chain of Thought)
+- Output format: single copyable block + target line + optional setup note
+
+<Tip>
+  If you're debugging unexpected output quality, check your Claude version against the routing profile. A prompt optimized for Opus 4.7 may behave differently on Opus 4.8 — see the version-specific notes in v1.6.0 and v1.7.0 above.
+</Tip>

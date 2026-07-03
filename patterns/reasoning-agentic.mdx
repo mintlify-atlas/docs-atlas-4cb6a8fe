@@ -1,0 +1,267 @@
+---
+title: "Reasoning and Agentic Anti-Patterns in AI Prompting"
+sidebarTitle: "Reasoning & Agentic"
+description: "Reasoning and agentic AI prompt anti-patterns — CoT on reasoning models, silent agents, unlocked filesystems — with fixes and the agentic template."
+---
+
+Reasoning failures and agentic failures operate at opposite ends of the prompt lifecycle. Reasoning failures corrupt the quality of the model's thinking before it produces output — they cause it to skip logic steps, contradict prior decisions, or waste tokens on internal monologue that a reasoning model already handles natively. Agentic failures corrupt the execution environment — they leave an autonomous agent without a defined starting point, a defined destination, a way to report progress, or the guardrails that prevent irreversible actions. The ten patterns below are the highest-stakes in the full set of thirty-five. Getting them wrong does not just produce bad output — it can produce output you cannot undo.
+
+---
+
+## Reasoning Patterns
+
+### Pattern 26 — No Chain-of-Thought for Logic Tasks
+
+When a prompt asks the model to choose between approaches, evaluate trade-offs, or reason about a system's behavior, the model defaults to producing a conclusion without showing its reasoning. That conclusion may be correct, but you cannot verify it without the reasoning — and a confidently stated wrong conclusion is more dangerous than a visible reasoning error you could catch.
+
+**Why it wastes credits:** You act on an answer you cannot verify, discover the error downstream, and spend tokens on both a correction and the work you did based on the wrong answer.
+
+| | Prompt |
+|---|---|
+| **Before** | `which approach is better?` |
+| **After** | `Evaluate both approaches. Think through the trade-offs of each step by step — consider performance, maintainability, and failure modes — before making a recommendation. Show your reasoning.` |
+
+The instruction "think step by step before recommending" forces the model to externalize its reasoning chain. You can inspect each step and catch errors before acting on the conclusion.
+
+---
+
+### Pattern 27 — Adding CoT to Reasoning Models
+
+<Warning>
+This is the single most wasteful pattern in the full set of thirty-five. Sending chain-of-thought instructions to o1, o3, o4-mini, DeepSeek-R1, or Qwen3 does not improve output quality — it actively degrades it. These models perform internal chain-of-thought reasoning before producing any visible output. Instructing them to "think step by step" in the prompt overrides or duplicates their native reasoning process, increasing token usage while reducing output quality. Anthropic, OpenAI, and the DeepSeek team all document this explicitly.
+</Warning>
+
+**Why it wastes credits:** You pay for reasoning tokens the model was already spending internally, and you receive lower-quality output because the external CoT instruction disrupts the model's native reasoning flow.
+
+| | Prompt |
+|---|---|
+| **Before** | `Think step by step. Consider all angles. Let's work through this carefully before reaching a conclusion. Which database architecture is better for our use case?` |
+| **After** | `Which database architecture is better for our use case? [context about use case]. Recommend one and explain why.` |
+
+**Affected models — remove all CoT instructions when targeting:**
+
+| Model | Provider | Notes |
+|---|---|---|
+| o1, o1-mini | OpenAI | First generation reasoning models |
+| o3, o3-mini | OpenAI | Do not add "think step by step" |
+| o4-mini | OpenAI | Chain-of-thought is internal |
+| DeepSeek-R1 | DeepSeek | Thinking tokens are separate and invisible |
+| Qwen3 (thinking mode) | Alibaba | Enable thinking mode via parameter, not prompt |
+| Claude 3.7 Sonnet (extended thinking) | Anthropic | Extended thinking is a parameter, not a prompt instruction |
+
+On standard (non-reasoning) models — GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro — CoT instructions remain effective and should be used for any multi-step logic task.
+
+---
+
+### Pattern 28 — No Self-Check on Complex Output
+
+Complex outputs — multi-step implementations, structured data with many fields, long-form documents with cross-references — have internal consistency requirements that the model may not verify unless explicitly told to. The model completes the output, evaluates it as complete, and submits it. Silent errors (a constraint violated on step 3, a field missing from the schema, a cross-reference that does not resolve) pass through without notice.
+
+**Why it wastes credits:** You discover the inconsistency during review and spend another prompt fixing a specific error that the model would have caught itself with a self-check instruction.
+
+| | Prompt |
+|---|---|
+| **Before** | *(No verification step — model submits on first completion)* |
+| **After** | `Before submitting your output, verify it against the following constraints: [list the constraints]. If any constraint is violated, fix it before responding. List which constraints you checked.` |
+
+```text
+[SELF-CHECK REQUIRED]
+Before submitting, verify:
+1. All TypeScript interfaces are explicitly typed — no `any`
+2. Every function has a JSDoc comment
+3. Error paths return the correct status codes defined above
+4. No imports from external libraries — only Node.js builtins and project modules
+If a constraint fails, fix it. List which constraints passed in your response.
+```
+
+---
+
+### Pattern 29 — Expecting Inter-Session Memory
+
+Every new Claude session starts with no memory of prior sessions. This is a hard architectural constraint, not a configuration option. Prompts that open with "you know my project" or "we've established that we're using X" will cause the model to either hallucinate a plausible version of your project or produce output that contradicts the actual state of your codebase.
+
+**Why it wastes credits:** The model invents context with high confidence. You may not detect the deviation until the output conflicts with something real in your project.
+
+| | Prompt |
+|---|---|
+| **Before** | `you already know my project, continue building the auth module` |
+| **After** | Re-provide the Memory Block at the top of every new session. See the Memory Block structure below. |
+
+```text
+[MEMORY BLOCK — paste at the top of every new session]
+Project: TaskFlow API
+Stack: Node.js 20, Express 4.18, PostgreSQL 15, Prisma 5, TypeScript strict
+Architecture decisions:
+- Auth: JWT, 15-min access token, 7-day refresh token stored in httpOnly cookie
+- All routes prefixed /api/v1/
+- Error format: { error: string, code: string, details?: object }
+- No third-party auth providers — custom implementation only
+Current state: POST /login complete, POST /register complete
+Next task: GET /me endpoint with token verification
+Open constraints: No new npm packages without explicit approval
+```
+
+The Memory Block is a fixed-format text block you maintain and paste at the top of every new session. It takes thirty seconds to update and eliminates the entire class of inter-session memory failures.
+
+---
+
+### Pattern 30 — Contradicting Prior Decisions
+
+Within a long session, or across sessions without a Memory Block, it is easy to introduce a new prompt that reverses an architectural decision made earlier. The model does not flag the contradiction — it treats the new instruction as authoritative and implements it, silently diverging from your established architecture.
+
+**Why it wastes credits:** You end up with code that is inconsistent with the rest of your project. Aligning it back to the original decision requires refactoring that could have been avoided entirely.
+
+| | Prompt |
+|---|---|
+| **Before** | *(New prompt implicitly overrides an earlier decision — model complies without flagging the conflict)* |
+| **After** | Include all established architectural decisions in the Memory Block and add an instruction: "If this task appears to contradict any Memory Block decision, flag it before proceeding." |
+
+```text
+[ESTABLISHED DECISIONS — do not override without explicit instruction]
+- Database: PostgreSQL only. Do not suggest or use SQLite, MongoDB, or any other DB.
+- ORM: Prisma only. Do not use raw SQL queries or Knex.
+- Auth: Custom JWT only. Do not introduce Passport.js, Auth0, or any auth library.
+- API style: REST only. Do not introduce GraphQL.
+
+If this prompt appears to require violating one of the above, stop and ask for clarification before proceeding.
+```
+
+---
+
+## Agentic Patterns
+
+Agentic prompts are instructions given to an AI that will take a sequence of actions — writing files, running commands, making API calls — without a human approving each step. The five patterns below are the most critical in the entire library. A task pattern failure produces a bad answer. An agentic pattern failure can produce irreversible changes to your codebase, database, or environment.
+
+### Pattern 31 — No Starting State
+
+An agent that does not know its starting state will assume one. If you say "build me a REST API," the agent will make decisions about what is already installed, what files already exist, and what the project structure looks like — and those decisions may conflict with your actual environment.
+
+**Why it wastes credits:** The agent builds on incorrect assumptions, and the output either does not run or requires significant rework to integrate with what already exists.
+
+| | Prompt |
+|---|---|
+| **Before** | `build me a REST API` |
+| **After** | `Starting state: Empty Node.js project. Express 4.18 is installed. The only existing file is src/app.js with a basic Express setup (app.listen on port 3000, no routes). No database connection yet. No .env file.` |
+
+Describe the starting state as a filesystem snapshot: what exists, what is installed, what is empty or missing.
+
+---
+
+### Pattern 32 — No Target State
+
+An agent without a defined target state will stop when it decides it is done — which may be before or after the state you actually need. "Add authentication" could mean a middleware stub, a full JWT implementation, or everything from database schema to HTTP routes. The agent picks a level.
+
+**Why it wastes credits:** The agent produces something, but it is not the specific state your next step depends on. You spend a prompt clarifying what you actually needed, then another prompt extending what was built.
+
+| | Prompt |
+|---|---|
+| **Before** | `add authentication` |
+| **After** | `Target state when done: (1) src/middleware/auth.js exists with a verifyToken() middleware that validates JWT and attaches req.user. (2) src/routes/auth.js exists with POST /login (returns JWT) and POST /register (creates user, returns JWT). (3) No other files modified.` |
+
+Define the target state as a filesystem description: which files must exist, what functions they must contain, and what the API surface must look like. Be as specific about the end state as you are about the task.
+
+---
+
+### Pattern 33 — Silent Agent
+
+An agent that produces no progress output is running as a black box. You cannot tell where it is in the task, whether it made a decision you disagree with, or whether it has stalled. By the time it surfaces output, it may have already taken ten steps you would have stopped at step two.
+
+**Why it wastes credits:** You cannot intervene at the right checkpoint. You discover unexpected decisions after they have already been implemented.
+
+| | Prompt |
+|---|---|
+| **Before** | *(Agent runs silently, surfaces final output only)* |
+| **After** | `After completing each step, output exactly: ✅ [Step name]: [one sentence describing what was done and what file was modified]. Then pause before proceeding to the next step.` |
+
+```text
+[PROGRESS FORMAT — required after each step]
+✅ Step 1 — Schema: Created users table migration in prisma/migrations/. Added id, email, passwordHash, createdAt fields.
+✅ Step 2 — Auth middleware: Created src/middleware/auth.js with verifyToken(). Attaches decoded JWT payload to req.user.
+✅ Step 3 — Routes: Created src/routes/auth.js with POST /login and POST /register. Both return signed JWT on success.
+```
+
+The progress format serves two purposes: it gives you a checkpoint to review, and it forces the agent to articulate what it did, which catches reasoning errors before the next step is built on top of them.
+
+---
+
+### Pattern 34 — Unlocked Filesystem
+
+<Warning>
+An agent with no filesystem restrictions is the most dangerous configuration in this entire pattern library. It has implicit permission to edit any file, including environment files, configuration files, build scripts, lock files, and CI/CD pipelines. A single misinterpreted instruction can cascade across your entire project. Every agentic prompt must specify both what the agent is allowed to touch and what it is explicitly forbidden from touching.
+</Warning>
+
+**Why it wastes credits:** An agent that edits package.json, .env, or a database migration file incorrectly can break your entire project. The recovery cost — debugging, reverting, re-testing — far exceeds the token cost of the original prompt.
+
+| | Prompt |
+|---|---|
+| **Before** | *(No filesystem restrictions — agent can touch any file)* |
+| **After** | `Filesystem restrictions: Only edit files inside src/. Do not touch package.json, package-lock.json, .env, .env.example, any file in prisma/migrations/, any config file (*.config.js, *.config.ts), or any file in the project root.` |
+
+```text
+[FILESYSTEM RESTRICTIONS — enforce strictly]
+ALLOWED: Read and edit any file inside src/
+ALLOWED: Read (not edit) prisma/schema.prisma
+FORBIDDEN: package.json, package-lock.json, yarn.lock, pnpm-lock.yaml
+FORBIDDEN: .env, .env.*, .env.local, .env.production
+FORBIDDEN: Any file in prisma/migrations/
+FORBIDDEN: Any *.config.js, *.config.ts, *.config.mjs file
+FORBIDDEN: Any file in the project root directory
+If a task requires touching a forbidden file, stop and ask.
+```
+
+---
+
+### Pattern 35 — No Human Review Trigger
+
+An agent that decides everything autonomously will proceed through decision points that should require human judgment. Deleting a file, adding a new dependency, changing a database schema, and modifying authentication logic are all decisions with significant downstream consequences. The agent does not know which decisions you care about reviewing — unless you tell it.
+
+**Why it wastes credits:** You discover autonomous decisions that should have been checkpointed only after they have been implemented — and sometimes after they have propagated to other parts of the system.
+
+| | Prompt |
+|---|---|
+| **Before** | *(Agent makes all decisions autonomously — no triggers defined)* |
+| **After** | `Stop and ask for explicit approval before: (1) deleting any file, (2) adding any npm dependency, (3) modifying or creating any database migration, (4) changing any authentication or authorization logic, (5) modifying any file outside src/.` |
+
+---
+
+## The Complete Agentic Prompt Template
+
+All five agentic patterns resolve to the same structural solution: a prompt that defines the complete execution environment before issuing any task instruction. Use this template as the starting point for any agentic task.
+
+```text
+[ROLE]
+You are a senior Node.js engineer. You write clean, typed, testable code.
+
+[MEMORY BLOCK]
+Stack: Node.js 20, Express 4, PostgreSQL 15, Prisma 5, TypeScript strict
+Prior decisions: JWT auth, /api/v1/ prefix, { error, code, details } error format
+Established files: src/app.js (Express setup), src/middleware/error.js (error handler)
+
+[STARTING STATE]
+Describe what currently exists: files, installed packages, empty directories.
+
+[TARGET STATE]
+Describe exactly what must exist when the task is complete: file paths, function names, API endpoints.
+
+[FILESYSTEM RESTRICTIONS]
+ALLOWED: src/ only
+FORBIDDEN: package.json, .env, prisma/migrations/, *.config.*, project root files
+
+[TASK]
+One specific task. Not "build the feature" — one atomic step toward the feature.
+
+[STOP CONDITIONS]
+Stop and ask before: deleting any file, adding any dependency, modifying any migration.
+After each step: output ✅ [step]: [what was done]. Pause for confirmation before next step.
+
+[SELF-CHECK]
+Before submitting: verify TypeScript compiles with no errors, all functions are typed, no `any`.
+```
+
+This template satisfies all five agentic pattern checks simultaneously: starting state (Pattern 31), target state (Pattern 32), progress output (Pattern 33), filesystem restrictions (Pattern 34), and human review triggers (Pattern 35). It also satisfies the reasoning pattern checks via the Memory Block (Patterns 29 and 30) and the self-check instruction (Pattern 28).
+
+---
+
+<Note>
+The five agentic patterns are the highest-stakes patterns in this library. Prompt Master will always flag when an agentic prompt is missing filesystem restrictions or human review triggers, even if the fix would otherwise be silent. These two patterns (34 and 35) are never silently corrected — they require explicit confirmation from you before Prompt Master applies defaults. See the [Anti-Patterns Overview](/patterns/overview) for the full diagnostic checklist.
+</Note>

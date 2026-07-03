@@ -1,0 +1,218 @@
+---
+title: "Format and Scope Anti-Patterns That Break AI Prompts"
+sidebarTitle: "Format & Scope"
+description: "Format and scope anti-patterns in AI prompts — missing output formats, no file paths, no stop conditions — with before/after fixes for 12 patterns."
+---
+
+Format failures and scope failures look different on the surface but share the same root cause: the prompt defines what to do without defining the shape of the result or the boundaries of the action. Format failures produce output that is technically correct but structurally wrong — the right information in the wrong container. Scope failures produce output that goes beyond what you authorized — more files touched, more libraries installed, more decisions made than you intended. The twelve patterns below cover both failure types, including the image AI-specific patterns that apply to Midjourney and similar generators, and the file-scope patterns that apply to IDE agents like Cursor and Claude Code.
+
+---
+
+## Format Patterns
+
+### Pattern 14 — Missing Output Format
+
+When no output format is specified, the model picks the one it considers most natural for the topic — which is usually a block of flowing prose. If you needed a table, a numbered list, a JSON object, or a code block, you will spend a follow-up prompt requesting the correct structure and losing the token cost of the first attempt.
+
+**Why it wastes credits:** The content is regenerated in the correct format on the second call. The first call produces throwaway output.
+
+| | Prompt |
+|---|---|
+| **Before** | `explain this concept` |
+| **After** | `Explain this concept as: 1 sentence summary at the top, then 3 bullet points each under 20 words, then 1 sentence on when not to use it` |
+
+Specify the output container explicitly: bullet count, sentence count, presence of headers, whether code blocks are expected, JSON vs prose.
+
+---
+
+### Pattern 15 — Implicit Length
+
+"Write a summary" can mean one sentence or five paragraphs depending on who you ask. The model defaults to whatever length feels natural for the topic — typically longer than you needed, because longer outputs score higher on perceived thoroughness.
+
+**Why it wastes credits:** You receive 400 words when you needed 60. Asking for a shorter version costs another call. Specifying the length upfront costs nothing.
+
+| | Prompt |
+|---|---|
+| **Before** | `write a summary` |
+| **After** | `Write a summary in exactly 3 sentences. First sentence: what it does. Second sentence: the main limitation. Third sentence: when to use it.` |
+
+Combine a sentence count with a structure. "Exactly 3 sentences" is a harder constraint than "3 sentences" — the model respects explicit precision.
+
+---
+
+### Pattern 16 — No Role Assignment
+
+Without a role assignment, the model answers from its generic training distribution — a blend of all the contexts in which it has encountered the topic. That blend is rarely optimized for your specific need. A senior backend engineer, a UX writer, and a DevOps specialist will each approach the same problem differently. The role tells the model which lens to apply.
+
+**Why it wastes credits:** Generic answers require follow-up prompts to apply the correct perspective, domain depth, and terminology.
+
+| | Prompt |
+|---|---|
+| **Before** | *(No role specified — generic answer follows)* |
+| **After** | `You are a senior backend engineer specializing in Node.js and PostgreSQL with 8 years of production experience. Prioritize correctness and observability over brevity.` |
+
+Set the role before the task. Role assignment affects not just tone but the depth of reasoning, the choice of tools referenced, and the trade-offs the model considers worth mentioning.
+
+---
+
+### Pattern 17 — Vague Aesthetic Adjectives
+
+Words like "professional," "clean," "modern," and "minimal" are subjective descriptors with no fixed referent. The model will interpret them according to its training — usually producing something generic that satisfies the word but not your vision. Two people using the word "professional" may have completely different designs in mind.
+
+**Why it wastes credits:** The first output does not match your aesthetic intention. You spend credits describing what you actually meant by "professional."
+
+| | Prompt |
+|---|---|
+| **Before** | `make it look professional` |
+| **After** | `Monochrome palette (black, white, one accent: #1A1A2E). 16px base font, 24px line height. No decorative elements, no gradients, no drop shadows. Section headers bold, 20px. Dense information layout — no hero sections.` |
+
+Replace adjectives with specifications: exact colors or palette constraints, font sizes, spacing values, explicit list of forbidden decorative elements.
+
+---
+
+### Pattern 18 — No Negative Prompts (Image AI)
+
+Image generation models interpret prompts as pure addition — they add everything they associate with your subject unless you explicitly block the associations. A portrait of a woman, without negative prompts, will include whatever the model considers a natural accompaniment: watermarks in some models, distorted hands in diffusion models, background text in others.
+
+**Why it wastes credits:** You run the generation, receive an image with visible artifacts, and spend the generation cost again on a fixed version. Negative prompts are free — they are just additional tokens.
+
+| | Prompt |
+|---|---|
+| **Before** | `a portrait of a woman` |
+| **After** | `a portrait of a woman, studio lighting, shallow depth of field --no watermark, blur, extra fingers, distortion, text, cropped, duplicate, deformed hands` |
+
+Add a `--no` block (Midjourney) or `negative_prompt` field (Stable Diffusion) with: watermark, blur, extra fingers, distortion, text, cropped edges, duplicate subjects, deformed anatomy.
+
+---
+
+### Pattern 19 — Prose Prompt for Midjourney
+
+Midjourney is a tag-and-parameter engine, not a natural language model in the same sense as Claude or GPT. Feeding it a full descriptive sentence the way you would prompt a text model produces inconsistent results because Midjourney parses the semantic weight of comma-separated tokens differently from clause-connected prose. Longer sentences dilute the signal of each individual element.
+
+**Why it wastes credits:** You spend generation credits on a composition that does not match your intent, then iterate toward the correct tag structure you should have used from the start.
+
+| | Prompt |
+|---|---|
+| **Before** | `Generate an image of a futuristic city at night with neon lights reflecting off wet streets and a lone figure standing in the rain looking up at towering skyscrapers` |
+| **After** | `futuristic city, cyberpunk, night, neon reflections, wet asphalt, lone figure, rain, towering skyscrapers, cinematic, dramatic lighting, wide angle --ar 16:9 --v 6 --no text, watermark, blur` |
+
+Use the Midjourney token structure: `subject, style, mood, lighting, composition, technical parameters`. Place the most important visual element first — Midjourney weights earlier tokens more heavily.
+
+---
+
+## Scope Patterns
+
+### Pattern 20 — No Scope Boundary
+
+"Fix my app" is a permission slip, not a task. The model will interpret it charitably and touch whatever it determines is broken — which may include files, patterns, and decisions you did not want touched. Without a boundary, there is no way for the model to know where its work should stop.
+
+**Why it wastes credits:** You receive changes across multiple files, some of which introduce new issues or override intentional choices. Rolling back and restarting costs more than scoping correctly upfront.
+
+| | Prompt |
+|---|---|
+| **Before** | `fix my app` |
+| **After** | `Fix the login form validation in src/auth/LoginForm.tsx only. The email field does not show an error when the format is invalid. Touch nothing else in the codebase.` |
+
+Always include: file path, function or component name, the specific symptom, and an explicit "touch nothing else" boundary.
+
+---
+
+### Pattern 21 — No Stack Constraints
+
+Asking for "a React component" without specifying the React version, TypeScript strictness, styling approach, and library policy gives the model full latitude to use whatever is common in its training data. That may mean React 17 class components when you are on React 18 hooks, or a Chakra UI import when you have no UI library installed.
+
+**Why it wastes credits:** The component cannot be used directly. It requires rewriting to match your actual stack, which may cost as much as writing it correctly the first time.
+
+| | Prompt |
+|---|---|
+| **Before** | `build a React component` |
+| **After** | `Build a React 18 functional component in TypeScript strict mode. Styling: Tailwind CSS only, no external component libraries. No default exports — named exports only. Props must be typed with an explicit interface.` |
+
+Specify: framework version, TypeScript mode, styling constraint, library allowlist, export convention, and any project-level code style rules.
+
+---
+
+### Pattern 22 — No Stop Condition for Agents
+
+An agent with no stop condition will continue until it decides it is done — which may mean completing a task you only wanted started, or running through several steps that should have been checkpointed with you first. "Build the whole feature" gives the agent both the starting gun and the finish line, and it will reach the finish line regardless of what it encounters along the way.
+
+**Why it wastes credits:** The agent makes irreversible decisions (file deletes, schema changes, dependency installs) that you discover only after the fact.
+
+| | Prompt |
+|---|---|
+| **Before** | `build the whole feature` |
+| **After** | `Build the user profile feature in three steps. After each step, output a summary of what was completed and stop. Do not proceed to the next step until I confirm. Step 1: Create the Prisma schema migration only. Step 2: Implement the GET /profile endpoint. Step 3: Add the PUT /profile update endpoint with validation.` |
+
+Define explicit stop conditions, a required checkpoint output format, and a confirmation step before proceeding. Never let an agent self-authorize the next step.
+
+---
+
+### Pattern 23 — No File Path for IDE AI
+
+Coding agents like Cursor, Windsurf, and Claude Code operate on your filesystem. An instruction like "update the login function" leaves the agent searching for a function named `login` across all files — and it will find one, though it may not be the one you meant. In a large codebase, this ambiguity is expensive.
+
+**Why it wastes credits:** The agent modifies the wrong function, or modifies the right function in the wrong file (e.g., a test file instead of the implementation). You discover the error at review or at runtime.
+
+| | Prompt |
+|---|---|
+| **Before** | `update the login function` |
+| **After** | `Update handleLogin() in src/pages/auth/Login.tsx only. Add form validation before the API call: email must match RFC 5322 format, password must be at least 8 characters. Return validation errors inline, do not navigate.` |
+
+Always provide: full file path from project root, exact function or component name, the specific change, and the expected behavior after the change.
+
+---
+
+### Pattern 24 — Wrong Template for Tool
+
+Different AI tools require different prompt structures. GPT-style prose instructions — role, context, task in flowing paragraphs — work well for conversational LLMs. They do not work as well for Cursor or Claude Code, which respond better to the File-Scope Template: path, scope, task, constraints, and stop condition as discrete fields. Sending prose to a code agent produces a more generalized response than the tool is capable of.
+
+**Why it wastes credits:** You receive a less precise output than the tool can produce, because you formatted the instruction for the wrong tool profile.
+
+| | Prompt (GPT-style prose) |
+|---|---|
+| **Before** | `You are a senior engineer. I need you to update the login function to add some validation. The function is in the auth module. Make sure it handles edge cases properly.` |
+| **After (File-Scope Template)** | See structured version below |
+
+```text
+FILE: src/pages/auth/Login.tsx
+FUNCTION: handleLogin()
+SCOPE: This function only. Do not touch LoginForm.tsx or auth.service.ts.
+TASK: Add pre-submit validation — email format (RFC 5322), password minimum 8 chars.
+BEHAVIOR: Return inline field errors. Do not trigger API call if validation fails.
+STOP: After implementing validation. Do not add tests, do not refactor the surrounding component.
+```
+
+The File-Scope Template gives IDE agents exactly the structured input they parse most effectively.
+
+---
+
+### Pattern 25 — Pasting Entire Codebase
+
+Pasting the full contents of a repository as context overwhelms the model's effective attention. The most relevant code — the three functions actually related to your task — is diluted by hundreds of lines of unrelated files. The model will process all of it, but the signal-to-noise ratio degrades its output quality and burns your context window.
+
+**Why it wastes credits:** You spend tokens on context the model cannot effectively use, and you pay for a lower-quality output because the relevant signal was buried.
+
+| | Prompt |
+|---|---|
+| **Before** | *(Entire codebase pasted — 2,000+ lines across 15 files)* |
+| **After** | *(Only the relevant function and its direct imports pasted — 40–80 lines)* |
+
+```text
+[CONTEXT — src/services/auth.service.ts, lines 45–92 only]
+// verifyToken() and its dependencies
+
+[TASK]
+Add expiry check to verifyToken(). Return { valid: false, reason: "expired" } when JWT exp is in the past.
+```
+
+Scope your context to the function being modified, its direct dependencies, and any interface definitions it references. Nothing else.
+
+---
+
+<Note>
+Format patterns 18 and 19 apply specifically to image generation tools (Midjourney, Stable Diffusion, DALL-E). Scope patterns 23 and 24 apply specifically to IDE-integrated coding agents (Cursor, Windsurf, Claude Code). All other patterns in this page apply to any AI tool. For task, context, reasoning, and agentic patterns, see [Task & Context](/patterns/task-context) and [Reasoning & Agentic](/patterns/reasoning-agentic).
+</Note>
+
+<Warning>
+**Pattern 22 (no stop condition) and Pattern 25 (pasting entire codebase)** are the two scope patterns most likely to produce irreversible damage in agentic workflows. An agent with no stop condition can delete files, run migrations, and install packages before you can intervene. Always define stop conditions explicitly when working with any autonomous coding agent.
+</Warning>

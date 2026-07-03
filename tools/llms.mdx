@@ -1,0 +1,279 @@
+---
+title: "Prompt Profiles for LLMs: Claude, GPT, Gemini, and More"
+sidebarTitle: "LLMs"
+description: "Tool-specific prompt rules for Claude 4.x, ChatGPT/GPT-5.x, o3/o4-mini, Gemini 2.x/3, Qwen, Ollama, Llama/Mistral, DeepSeek, and MiniMax."
+---
+
+Every large language model has its own prompt personality. Claude thrives on rich XML structure; o3 breaks when you add chain-of-thought scaffolding; Gemini drifts into hallucinated citations without a grounding anchor; Ollama's behavior is entirely determined by the model underneath it. Prompt Master routes your request to the correct framework for each target automatically — this page documents every rule it applies so you understand exactly why your generated prompt looks the way it does.
+
+<Note>
+  The single most impactful split in LLM prompting is between **standard instruction-following models** (Claude, GPT, Gemini, Qwen, Llama) and **reasoning-native models** (o3/o4-mini, DeepSeek-R1, Qwen3 thinking mode). Standard models benefit from explicit chain-of-thought guidance. Reasoning-native models have built-in adaptive thinking — adding CoT instructions actively degrades their output quality. Prompt Master detects the target model and strips CoT automatically.
+</Note>
+
+---
+
+## Claude 4.x (Opus 4.8 default / 4.7)
+
+Claude 4.x is the default model when no specific LLM is named. Opus 4.8 is the default variant. Claude responds best to precise, front-loaded instructions delivered in a literal tone — it follows what you write, not what you imply.
+
+- **Front-load everything** — put the most important instructions at the top of the prompt, not buried in context
+- **Use XML tags for complex prompts** — wrap sections in `<instructions>`, `<context>`, `<examples>`, `<output>` for reliable parsing
+- **Adaptive thinking is built-in** — never add explicit chain-of-thought instructions (CoT); Claude 4.x handles reasoning internally
+- **1M context window** — safe for large codebases and long documents; no truncation anxiety
+- **Literal instruction following** — specify precisely what you want; Claude will not infer unstated preferences
+- **Append for agentic tasks:** `Only make changes directly requested.` — prevents Claude from over-engineering solutions
+- **Template:** Template M (agentic tasks), CO-STAR (structured requests), RTF (quick tasks)
+
+```text
+<instructions>
+Refactor the function below to eliminate duplicate logic.
+Only make changes directly requested.
+Do not rename variables, add comments, or reformat code outside the changed lines.
+</instructions>
+
+<context>
+Language: TypeScript
+File: src/utils/parser.ts
+</context>
+
+<task>
+[paste function here]
+</task>
+```
+
+---
+
+## ChatGPT / GPT-5.x
+
+GPT-5.x is highly capable at long-context synthesis and following output contracts. The guiding principle is **smallest prompt that works** — GPT responds well to concise, contract-first instructions and tends to verbosity when given room.
+
+- **Smallest prompt that works** — strip every word that doesn't carry instruction weight
+- **Explicit output contract** — state the exact format, length, and structure you expect up front
+- **Compact structured outputs** — prefer JSON, numbered lists, and tables over free prose responses
+- **Constrain verbosity with word counts** — `Respond in under 150 words` or `Return exactly 3 bullet points` prevents runaway outputs
+- **Strong at long-context synthesis** — safe to provide large documents for summarization, analysis, or extraction tasks
+
+```text
+You are a code reviewer. Return a JSON array of issues.
+Each issue: { "line": number, "severity": "error"|"warning"|"info", "message": string }
+Respond with the array only — no prose, no markdown fences.
+Max 10 issues. Prioritize by severity descending.
+```
+
+---
+
+## o3 / o4-mini
+
+o3 and o4-mini are reasoning-native models with internal chain-of-thought. Longer, more elaborate prompts do not improve their output — they degrade it. These models need space to think, not scaffolding.
+
+<Warning>
+  **Never add chain-of-thought instructions to o3 or o4-mini prompts.** Phrases like "Let's think step by step", "Reason through this carefully", or "Show your work" actively interfere with the model's built-in reasoning and produce worse results. Prompt Master removes them automatically.
+</Warning>
+
+- **SHORT, clean instructions only** — keep the full prompt concise; clarity beats completeness here
+- **System prompts under 200 words** — longer system prompts reduce reasoning quality
+- **Zero-shot first** — do not add few-shot examples unless the task genuinely requires them; examples constrain reasoning
+- **No CoT scaffolding** — never add step-by-step reasoning instructions (see warning above)
+- **State the goal, not the method** — describe what you want, not how to get there
+
+```text
+Review the attached code for security vulnerabilities.
+Return: vulnerability name, affected line numbers, severity (critical/high/medium/low), fix recommendation.
+Format as a markdown table.
+```
+
+---
+
+## Gemini 2.x / 3
+
+Gemini 2.x and 3 excel at long-context tasks and multimodal inputs (text, images, documents). The main failure mode is hallucinated citations — Gemini will confidently cite sources that don't exist without a grounding constraint.
+
+- **Strong long-context and multimodal capability** — safe for document-heavy, image-paired, and mixed-media tasks
+- **Add a grounding anchor** — explicitly instruct `Only cite sources provided in this prompt` or `Do not fabricate citations` to prevent hallucinated references
+- **Explicit format locks** — state the output structure precisely; Gemini drifts into verbose prose without a hard format constraint
+- **Avoid open-ended "discuss" prompts** — prefer specific deliverables (`return a table`, `write exactly 5 points`)
+
+```text
+Analyze the research paper below and extract key findings.
+Format: numbered list, max 8 items, one sentence each.
+Only reference claims that appear explicitly in the provided text.
+Do not add citations, context, or background not present in the document.
+
+[document text]
+```
+
+---
+
+## Qwen 2.5
+
+Qwen 2.5 has excellent instruction-following capability and handles JSON output reliably. It works best with a well-defined system prompt and focused task scope — spreading the request across a long prompt reduces accuracy.
+
+- **Clear, explicit system prompt** — Qwen 2.5 uses the system prompt effectively; invest in it
+- **Shorter, focused prompts** — concentrated task descriptions outperform sprawling multi-part instructions
+- **Strong at JSON and structured output** — the safest choice for structured extraction tasks when using open-weight models
+- **Explicit instruction following** — state each requirement as a separate line item rather than embedding in prose
+
+```text
+System: You are a data extraction assistant. Return only valid JSON. No prose.
+
+Extract the following fields from the customer email below:
+- sender_name
+- issue_category (billing | technical | general)
+- urgency (high | medium | low)
+- one_line_summary
+
+Email: [paste email]
+```
+
+---
+
+## Qwen3 (Thinking vs. Non-Thinking Mode)
+
+Qwen3 operates in two distinct modes that require completely different prompting strategies.
+
+<Tabs>
+  <Tab title="Thinking Mode">
+    Qwen3 thinking mode is reasoning-native — treat it exactly like o3.
+
+    - **No CoT instructions** — built-in adaptive reasoning; adding step-by-step guidance degrades output
+    - **Short, clean instructions** — same rules as o3/o4-mini apply
+    - **Zero-shot preferred** — avoid few-shot examples unless strictly required
+    - **State the goal only** — do not prescribe a reasoning method
+
+    ```text
+    Identify the most likely root cause of the bug described below.
+    Return: root cause (one sentence), affected component, suggested fix.
+
+    Bug report: [paste report]
+    ```
+  </Tab>
+  <Tab title="Non-Thinking Mode">
+    Qwen3 non-thinking mode is a standard instruction-following model — treat it like Qwen 2.5.
+
+    - **Clear system prompt** — define role and output format upfront
+    - **Shorter, focused prompts** — same principles as Qwen 2.5
+    - **Structured output works well** — JSON, tables, and lists are reliable
+    - **Explicit requirements as line items** — don't bury constraints in paragraphs
+
+    ```text
+    System: You are a JSON-only assistant. Return valid JSON, no other text.
+
+    Classify the support ticket below:
+    - category: billing | technical | account | other
+    - priority: 1 (critical) to 5 (low)
+    - escalate: true | false
+
+    Ticket: [paste ticket]
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Ollama
+
+Ollama is a runtime, not a model — the model running underneath it determines the actual prompting strategy. Always establish which model is loaded before writing a prompt.
+
+<Tip>
+  Prompt Master will ask which model you're running in Ollama before generating a prompt. Once you specify (e.g., `llama3.2`, `mistral-nemo`, `deepseek-r1:8b`), it applies the rules for that model family.
+</Tip>
+
+- **Always identify the underlying model first** — `mistral`, `llama3`, `gemma2`, `qwen2.5`, `deepseek-r1` all have different optimal strategies
+- **System prompt is the most impactful lever** — Ollama models respond strongly to a well-crafted system prompt; invest here first
+- **Temperature 0.1 for coding tasks** — deterministic output for code generation, debugging, and data extraction
+- **Temperature 0.7–0.8 for creative tasks** — writing, brainstorming, ideation, dialogue
+
+```text
+System: You are a senior Python developer. Write clean, PEP-8-compliant code.
+Return only the function — no explanation, no markdown fences.
+
+Task: Write a function that validates an email address using regex.
+Signature: def validate_email(email: str) -> bool
+```
+*(Temperature: 0.1 for this coding example)*
+
+---
+
+## Llama / Mistral
+
+Open-weight models like Llama 3.x and Mistral respond best to simple, direct language. Claude-style XML scaffolding and GPT-style elaborate output contracts add noise without benefit here.
+
+- **Shorter, simpler prompts** — concise beats comprehensive; long prompts degrade instruction-following
+- **Simple flat structure** — avoid nested XML, elaborate JSON schemas, or multi-section templates
+- **More explicit than Claude or GPT** — don't rely on inference; state each requirement directly
+- **Avoid implicit assumptions** — what Claude infers from context, Llama needs stated explicitly
+
+```text
+Write a Python function that sorts a list of dictionaries by the "date" key.
+- Input: list of dicts, each with a "date" key in "YYYY-MM-DD" format
+- Output: sorted list, ascending order
+- Handle missing "date" keys by placing those items at the end
+- Return only the function, no explanation
+```
+
+---
+
+## DeepSeek-R1
+
+DeepSeek-R1 is a reasoning-native model that produces its internal reasoning chain inside `<think>` tags before delivering the final answer. Like o3, it has built-in adaptive thinking that is degraded by explicit CoT scaffolding.
+
+<Warning>
+  DeepSeek-R1 outputs its reasoning process in `<think>...</think>` tags automatically. Do not instruct it to "show its reasoning" or "think step by step" — this creates redundant and lower-quality reasoning output. If you only want the final answer, instruct the model to return content after the `</think>` block.
+</Warning>
+
+- **Reasoning-native — no CoT instructions** — same rule as o3; short, clean goal statements only
+- **Short, clean instructions** — let the model's internal reasoning do the work
+- **Outputs appear in `<think>` tags** — final answer follows the closing tag; parse accordingly if using the API
+- **Strong at math, logic, and complex reasoning** — well-suited for multi-step analytical tasks
+
+```text
+Determine whether the following business logic contains a race condition.
+If yes: identify the affected operations and propose a fix.
+If no: confirm with a one-sentence explanation.
+
+Code: [paste code]
+```
+
+---
+
+## MiniMax M3 / M2.7
+
+MiniMax models are OpenAI-API-compatible and support very long contexts. M2.7 has a 1M token context window. There is a strict temperature constraint that applies across both models.
+
+- **OpenAI-compatible API** — works with the same message format as GPT; system/user/assistant roles apply
+- **1M context window on M2.7** — safe for very large document analysis and codebase tasks
+- **Temperature must be between 0 and 1** — values outside this range will error; do not use 0 as a floor if the API requires a positive value
+- **Strong at code, JSON, and multi-step workflows** — reliable structured output and sequential task handling
+- **Treat prompting style like GPT-5.x** — explicit output contract, constrained verbosity, compact structure
+
+```text
+System: You are a JSON extraction assistant. Return only valid JSON. No markdown, no explanation.
+
+From the contract excerpt below, extract:
+{
+  "party_a": string,
+  "party_b": string,
+  "effective_date": "YYYY-MM-DD",
+  "termination_clause": boolean,
+  "governing_law": string
+}
+
+Contract: [paste excerpt]
+```
+
+---
+
+## At a Glance: CoT Rules by Model
+
+| Model | CoT Instructions | Why |
+|---|---|---|
+| Claude 4.x | ❌ Never | Adaptive thinking built-in |
+| GPT-5.x | ✅ Optional | Improves complex multi-step tasks |
+| o3 / o4-mini | ❌ Never | Degrades reasoning output |
+| Gemini 2.x/3 | ✅ Optional | Helpful for structured analysis |
+| Qwen 2.5 | ✅ Optional | Improves accuracy on complex tasks |
+| Qwen3 Thinking | ❌ Never | Reasoning-native mode |
+| Qwen3 Non-Thinking | ✅ Optional | Standard model behavior |
+| Llama / Mistral | ✅ Optional | Use sparingly; keep prompts short |
+| DeepSeek-R1 | ❌ Never | Reasoning-native; uses `<think>` tags |
+| MiniMax M3/M2.7 | ✅ Optional | Treat like GPT |

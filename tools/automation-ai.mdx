@@ -1,0 +1,193 @@
+---
+title: "Prompt Profiles for Workflow and Research AI Tools"
+sidebarTitle: "Automation AI"
+description: "Tool-specific prompt rules for Zapier, Make, n8n, Perplexity, Manus, and computer-use agents including Comet, Atlas, and OpenClaw."
+---
+
+Automation AI tools occupy a different risk category from conversational AI. When you give a workflow tool a poorly scoped prompt, the result is not a bad answer — it is a misconfigured automation that fires on the wrong trigger, pushes data to the wrong field, or processes thousands of records before you notice the error. Computer-use agents raise this further: they control a browser or operating system with real mouse clicks and keystrokes, and a missing stop condition can mean a form submitted, a file deleted, or a purchase confirmed. Prompt Master applies precision-first rules to every tool in this category.
+
+---
+
+## Zapier / Make / n8n
+
+Workflow automation tools — Zapier, Make (formerly Integromat), and n8n — all share the same underlying logic: a trigger event causes one or more actions. The prompt structure must mirror this logic exactly. Field mapping errors are the most common failure mode, followed by missing authentication notes.
+
+**Required prompt structure:**
+`[Trigger app] + [Trigger event] → [Action app] + [Action] + [Field mapping]`
+
+**Core rules:**
+
+- **Number every step for multi-step workflows** — `Step 1`, `Step 2`, `Step 3`; do not describe multi-step flows as prose
+- **State the trigger app and event explicitly** — `Trigger: New row added to Google Sheets (Sheet: "Leads", column A not empty)`
+- **State the action app and action explicitly** — `Action: Create contact in HubSpot CRM`
+- **Map fields explicitly** — `Map: Sheet column B (Email) → HubSpot "Email" field; Sheet column C (Name) → HubSpot "First Name" field`
+- **Note authentication requirements** — `Requires: Google Sheets OAuth connection, HubSpot API key`
+- **Specify filter conditions** — `Only trigger when column D (Status) = "Approved"`
+
+<Tabs>
+  <Tab title="Single-step workflow">
+    ```text
+    Automation: New lead notification
+
+    Trigger: New row added to Google Sheets
+    - Sheet: "Sales Leads" (Sheet ID: [your ID])
+    - Condition: Only trigger when column E (Status) = "New"
+
+    Action: Send Slack message
+    - Channel: #sales-alerts
+    - Message: "New lead: {Column B - Name} from {Column C - Company} — {Column D - Email}"
+
+    Auth required: Google Sheets OAuth, Slack Bot Token
+    ```
+  </Tab>
+  <Tab title="Multi-step workflow">
+    ```text
+    Automation: New Typeform response → qualify → route
+
+    Step 1 — Trigger:
+    App: Typeform
+    Event: New submission on form "Discovery Call Request"
+    Fields captured: name, email, company_size, budget_range
+
+    Step 2 — Filter (no app action):
+    Condition: budget_range is one of ["$10k–$50k", "$50k+"]
+    If false: stop workflow
+
+    Step 3 — Action:
+    App: HubSpot
+    Action: Create deal
+    Field mapping:
+    - Deal Name → "{name} - {company_size}"
+    - Contact Email → email
+    - Deal Stage → "Discovery Scheduled"
+    - Budget → budget_range
+
+    Step 4 — Action:
+    App: Gmail
+    Action: Send email
+    To: sales@yourcompany.com
+    Subject: "Qualified lead: {name}"
+    Body: "Name: {name}\nEmail: {email}\nCompany size: {company_size}\nBudget: {budget_range}"
+
+    Auth required: Typeform API key, HubSpot OAuth, Gmail OAuth
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  For n8n specifically, include the node type alongside each step when the workflow uses custom code or webhook nodes — e.g., `Step 2 — HTTP Request node` or `Step 3 — Function node (custom JS)`. This helps n8n's AI wire the correct node type.
+</Tip>
+
+---
+
+## Perplexity
+
+Perplexity is a search-augmented AI — its primary differentiator is that it retrieves and cites real sources. The most impactful variable in a Perplexity prompt is specifying the **mode** of the request: are you asking for a search, an analysis, or a comparison? These produce very different outputs and require different grounding constraints.
+
+- **Specify the mode explicitly** — `search`, `analyze`, `compare`, `summarize`, `explain`
+- **State citation requirements** — `Cite your sources inline`, `Return only claims you can cite`, `Include publication date for each source`
+- **Grounded queries outperform open-ended ones** — anchor the query to a specific domain, time range, or source type
+- **For comparison tasks** — define the comparison axes explicitly: `Compare X and Y on: price, performance, compatibility, and community support`
+- **For analysis tasks** — specify the analytical lens: `from a security perspective`, `focusing on scalability implications`
+
+```text
+Mode: Compare
+Task: Compare PostgreSQL and MongoDB for a high-write, low-read analytics workload.
+Comparison axes: write throughput at scale, horizontal scaling approach, query flexibility for aggregations, operational complexity, cloud-managed options.
+Citation requirement: Cite specific benchmark studies or official documentation for any performance claims. Include publication year.
+Scope: Current versions only (PostgreSQL 16+, MongoDB 7+).
+```
+
+---
+
+## Manus / Perplexity Computer
+
+Manus and Perplexity Computer are AI agents that can perform multi-step research, data gathering, and document creation tasks autonomously. Unlike chatbots, they pursue a goal over multiple steps and produce an artifact. The prompting strategy shifts from "ask a question" to "commission a deliverable."
+
+- **Describe the end deliverable, not the steps** — specify what you want to receive, not how to get there; the agent decides its own navigation path
+- **Specify output artifact type** — `a structured markdown report`, `a CSV file`, `a slide outline`, `a comparison table`
+- **Flag uncertain data** — instruct the agent to mark any data it could not verify: `Flag any claim you cannot confirm with a source as [UNVERIFIED]`
+- **Define scope boundaries** — specify what sources or data categories are in and out of scope
+- **Specify freshness requirements** — `Use only sources from 2024 or later`, `Prioritize official documentation over blog posts`
+
+```text
+Task: Research and produce a competitive analysis report.
+
+Deliverable: A structured markdown report with these sections:
+1. Executive Summary (3–5 bullet points)
+2. Competitor Profiles (one section per competitor: Notion, Coda, Confluence)
+   - Core positioning
+   - Key differentiators
+   - Pricing tiers (current)
+   - Known weaknesses
+3. Feature Comparison Table (rows: features, columns: competitors)
+4. Market Positioning Map (describe as text — quadrant analysis)
+
+Data requirements:
+- Use only publicly available information
+- Pricing must be current (check official pricing pages)
+- Flag any section where data could not be verified as [UNVERIFIED]
+
+Scope: B2B team collaboration tools, SMB and enterprise segments only.
+Output format: Markdown, ready to paste into Notion.
+```
+
+---
+
+## Computer-Use Agents (Comet, Atlas, Claude in Chrome, OpenClaw)
+
+Computer-use agents control a browser or operating system directly — they move the mouse, click, type, navigate, and interact with any interface a human can. This is the highest-stakes category of AI tool in this guide. The gap between a well-scoped and a poorly scoped prompt is the difference between a task completed safely and an irreversible action taken without confirmation.
+
+<Warning>
+  **Computer-use agents execute real actions in real systems.** Comet, Atlas, Claude in Chrome, and OpenClaw can click "confirm", "submit", "delete", "purchase", and "send" on real interfaces. Always define permission boundaries and require the agent to stop before any irreversible action. Never describe navigation steps — describe the outcome.
+</Warning>
+
+**Core rules:**
+
+- **Describe the outcome, not the navigation steps** — `Book the cheapest available flight from SFO to JFK on June 15th` not `Go to Google Flights, enter SFO in the origin field, enter JFK in the destination field...`
+- **Define permission boundaries explicitly** — what the agent is allowed to access, interact with, and use
+- **Stop before irreversible actions** — always include a stop condition for any action that cannot be undone: form submission, purchase confirmation, file deletion, email sending
+- **Specify what counts as success** — give the agent a clear observable completion condition so it knows when to stop
+
+### Permission Boundary Template
+
+<Accordion title="Computer-Use Agent Prompt Structure">
+  | Section | Purpose | Example |
+  |---|---|---|
+  | **Task** | The outcome you want | `Find and open the refund request from customer ID 4821` |
+  | **Allowed scope** | Which apps, sites, or files the agent may use | `Access: our Zendesk instance only` |
+  | **Forbidden actions** | What the agent must never do | `Do not submit, approve, or delete any ticket` |
+  | **Stop condition** | When to pause and show you | `Stop when you have the ticket open; show me before taking any action` |
+  | **Success criteria** | What done looks like | `Done when the refund request is visible on screen and verified as belonging to customer 4821` |
+</Accordion>
+
+### Example: Research Task (Low Risk)
+
+```text
+Task: Find the current pricing for Salesforce Sales Cloud Professional tier.
+Allowed scope: Public websites only (salesforce.com and publicly accessible review sites)
+Forbidden actions: Do not log into any account, do not submit any forms, do not click any "Start trial" or "Contact sales" buttons
+Stop condition: Stop once you have found the official pricing page; copy the pricing table and return it to me
+Success: The current monthly per-seat price for Sales Cloud Professional, sourced from salesforce.com
+```
+
+### Example: Workflow Task (Higher Risk)
+
+```text
+Task: In our Notion workspace, find all pages tagged "Draft" that were last edited more than 30 days ago and compile a list.
+
+Allowed scope: Our Notion workspace (workspace: "AcmeCo") — read access only
+Forbidden actions:
+- Do not delete, archive, or move any pages
+- Do not edit any page content
+- Do not share or export any pages
+
+Stop condition: Stop before taking any action other than reading and navigating. Return the list to me — do not perform any bulk actions.
+
+Success: A list of page titles, URLs, and last-edited dates for all pages tagged "Draft" with last edit > 30 days ago.
+Format: Markdown table with columns: Page Title, URL, Last Edited
+```
+
+<Note>
+  For computer-use agents, **the stop condition is the most important part of the prompt**. If you cannot define when the agent should stop, the task is not yet scoped enough to run. Define the stopping point before everything else.
+</Note>

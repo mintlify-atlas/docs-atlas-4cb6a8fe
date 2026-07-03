@@ -1,0 +1,199 @@
+---
+title: "Prompt Profiles for Image AI: Midjourney, DALL-E, SD"
+sidebarTitle: "Image AI"
+description: "Tool-specific prompt rules for Midjourney, DALL-E 3, Stable Diffusion, SeeDream, ComfyUI, and reference image editing workflows and detection."
+---
+
+Image AI tools are not interchangeable — Midjourney parses comma-separated descriptors and ignores prose; DALL-E 3 works in the opposite direction and reads natural sentences; Stable Diffusion uses weighted keywords with numeric strength values; ComfyUI always needs two separate prompt blocks and breaks when you merge them. Getting the syntax wrong doesn't produce a slightly different image — it produces an image that ignores most of your instructions entirely. Prompt Master detects the target image tool and switches prompt structure, syntax, and parameter format accordingly.
+
+<Note>
+  Before writing any image prompt, Prompt Master checks whether the request is for **generation** (create something new) or **editing** (modify something that exists). These require different prompt structures. See [Reference Image Editing](#reference-image-editing) at the bottom of this page.
+</Note>
+
+---
+
+## Midjourney
+
+Midjourney responds to **comma-separated descriptors**, not prose sentences. The order matters: subject first, then environment, then lighting and mood, then technical parameters at the end. Writing a sentence where you'd write a list is the most common Midjourney prompting mistake.
+
+**Structure:**
+`[subject], [environment/setting], [lighting], [mood/atmosphere], [style/rendering], [technical quality] --ar [ratio] --v [version] --style [style]`
+
+**Core rules:**
+
+- **Comma-separated descriptors, not prose** — `lone samurai, heavy rain` not `a lone samurai standing in heavy rain`
+- **Subject always first** — the model weights early tokens more heavily
+- **Parameters always last** — `--ar`, `--v`, `--style`, `--chaos`, `--q` go at the very end, never inline
+- **Negative prompts via `--no`** — `--no text, watermark, signature, blurry` (not a separate negative prompt field)
+- **Aspect ratio with `--ar`** — `--ar 16:9` (landscape), `--ar 9:16` (portrait), `--ar 1:1` (square)
+- **Version flag** — `--v 6` is the current standard; `--v 6.1` for sharper details
+- **`--style raw`** — reduces Midjourney's aesthetic processing; use when you want precise descriptor adherence
+
+### Example
+
+```text
+lone samurai standing in heavy rain at night, traditional armor, neon reflections on wet cobblestone street, cinematic lighting, dramatic shadows, fog, ultra detailed, photorealistic, shallow depth of field --ar 16:9 --v 6 --style raw
+```
+
+### Parameter Reference
+
+| Parameter | Purpose | Example |
+|---|---|---|
+| `--ar` | Aspect ratio | `--ar 16:9`, `--ar 3:2` |
+| `--v` | Model version | `--v 6`, `--v 6.1` |
+| `--style raw` | Reduces aesthetic processing | `--style raw` |
+| `--no` | Negative descriptors | `--no text, watermark` |
+| `--chaos` | Output variation (0–100) | `--chaos 25` |
+| `--q` | Render quality (0.25–2) | `--q 2` |
+
+---
+
+## DALL-E 3
+
+DALL-E 3 is optimized for **natural prose descriptions**. Unlike Midjourney, it parses sentences and understands spatial relationships, context, and compositional intent from fully formed paragraphs. The two most important rules prevent its most common failure modes: generating unwanted text in the image, and missing depth through poor layering.
+
+- **Write prose, not keyword lists** — `A lone samurai stands in a rain-soaked alley` not `samurai, rain, alley`
+- **Describe foreground, midground, and background** — layered spatial descriptions produce more compositionally coherent images
+- **Add `do not include text unless specified`** — DALL-E 3 will generate signs, labels, and readable text if any text-like concept is in the prompt
+- **Describe mood through scene details** — `rain-slicked cobblestones reflecting a distant neon sign` beats `moody` as a standalone descriptor
+- **State the art style explicitly** — `photorealistic`, `oil painting`, `watercolor illustration`, `flat design vector`
+
+```text
+A lone samurai stands at the entrance of a rain-soaked alley at night. In the foreground, puddles on the cobblestone street reflect streaks of red and blue neon light from a distant sign. The samurai's traditional armor glistens with rain. In the background, fog obscures the alley's end, with only faint lantern light visible. Cinematic lighting, photorealistic style, dramatic shadows, shallow depth of field. Do not include any text, symbols, or writing in the image.
+```
+
+---
+
+## Stable Diffusion
+
+Stable Diffusion uses a weighted keyword syntax where you can apply numeric strength to individual descriptors. The negative prompt is not optional — it has the largest single impact on output quality after the main prompt. CFG scale and step count are primary quality levers.
+
+<Warning>
+  **The negative prompt is mandatory in Stable Diffusion.** Skipping it results in common artifacts: extra fingers, distorted faces, blurry backgrounds, watermarks, and low-quality textures. Always include a negative prompt block.
+</Warning>
+
+**Weighted syntax:** `(keyword:weight)` — weight defaults to 1.0; use 1.1–1.5 to emphasize, 0.5–0.9 to de-emphasize
+
+**CFG scale:** 7–12 for most uses; lower = more creative/loose, higher = more literal/constrained
+
+**Steps:**
+- **20–30 steps** — drafts, iteration, fast previews
+- **40–50 steps** — final renders, high-detail output
+
+**Core rules:**
+- **`(word:weight)` syntax for emphasis** — `(ultra detailed:1.3)`, `(bokeh:1.2)`
+- **Negative prompt is MANDATORY** — always output a negative prompt block
+- **CFG 7–12** — 7 for artistic freedom, 10–12 for strict prompt adherence
+- **Steps 20–30 drafts / 40–50 finals**
+
+<Tabs>
+  <Tab title="Positive Prompt">
+    ```text
+    (lone samurai:1.2), standing in heavy rain, traditional armor, (neon reflections:1.1) on wet cobblestone street, cinematic lighting, dramatic shadows, fog, (ultra detailed:1.3), photorealistic, (shallow depth of field:1.1), 8k resolution, masterpiece
+    ```
+  </Tab>
+  <Tab title="Negative Prompt">
+    ```text
+    (deformed:1.4), (blurry:1.3), bad anatomy, extra limbs, watermark, text, signature, lowres, jpeg artifacts, cropped, worst quality, low quality, normal quality, username, artist name
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## SeeDream
+
+SeeDream is a style-forward image generator that responds well to art style declarations and mood vocabulary. It supports negative prompts and benefits from being given a clear aesthetic direction before the subject description.
+
+- **Specify art style first** — lead with the aesthetic: `anime`, `cinematic`, `painterly`, `concept art`, `ukiyo-e`, `noir photography`
+- **Mood descriptors are high-signal** — `melancholic`, `ethereal`, `visceral`, `dreamlike`, `harsh and overexposed`
+- **Negative prompt recommended** — not strictly required, but improves output consistency
+- **Subject follows style declaration** — `cinematic noir — lone detective in a rain-soaked city street at midnight`
+
+```text
+cinematic, noir photography style — lone detective standing under a flickering streetlight, rain-soaked city street, deep shadows, high contrast, 1940s setting, fedora and trench coat, distant neon signs reflected in puddles, atmospheric fog, desaturated with amber highlights
+
+Negative: cartoonish, bright colors, daytime, modern clothing, text, watermark
+```
+
+---
+
+## ComfyUI
+
+ComfyUI is a node-based image generation interface. Each node in the workflow receives either a positive or a negative prompt — they are separate inputs and must never be combined. Prompt Master always outputs two distinct blocks when generating for ComfyUI.
+
+<Warning>
+  **Always output TWO separate prompt blocks for ComfyUI — Positive and Negative. Never merge them.** ComfyUI's CLIPTextEncode nodes are wired separately; a merged prompt causes one of the conditioning inputs to receive incorrect content, which breaks the generation.
+</Warning>
+
+- **Node-based workflow** — prompts feed into specific nodes (typically `CLIPTextEncode` for positive and negative conditioning)
+- **Ask which checkpoint first** — PromptMaster will ask which model checkpoint you're using (e.g., SDXL, SD 1.5, Flux) before generating; syntax and optimal weights differ by checkpoint
+- **Always two blocks** — Positive prompt block + Negative prompt block, clearly labeled
+- **Never merge** — positive and negative content must never appear in the same block
+
+<Accordion title="ComfyUI Prompt Output Format">
+  Prompt Master always delivers ComfyUI prompts in this format:
+
+  ```text
+  === POSITIVE PROMPT (CLIPTextEncode — positive conditioning) ===
+  [positive prompt content here]
+
+  === NEGATIVE PROMPT (CLIPTextEncode — negative conditioning) ===
+  [negative prompt content here]
+  ```
+</Accordion>
+
+```text
+=== POSITIVE PROMPT (CLIPTextEncode — positive conditioning) ===
+lone samurai standing in heavy rain at night, traditional Japanese armor, neon reflections on wet cobblestone street, cinematic lighting, dramatic shadows, volumetric fog, ultra detailed, photorealistic, shallow depth of field, 8k, masterpiece, best quality
+
+=== NEGATIVE PROMPT (CLIPTextEncode — negative conditioning) ===
+deformed, blurry, bad anatomy, extra limbs, watermark, text, signature, low quality, worst quality, jpeg artifacts, cropped, out of frame, duplicate
+```
+
+---
+
+## Reference Image Editing
+
+Reference image editing is a fundamentally different task from generation. When a reference image is provided, the prompt should describe only the **delta** — what changes and what stays the same — not the full scene description.
+
+### Edit vs. Generate Detection
+
+Prompt Master detects whether your request is for generation or editing based on these signals:
+
+<Accordion title="Generation signals (create from scratch)">
+  - No image attached
+  - Language: "create", "generate", "make an image of", "draw", "design"
+  - No reference to existing visual content
+</Accordion>
+
+<Accordion title="Editing signals (modify an existing image)">
+  - An image is attached or referenced
+  - Language: "change", "replace", "remove", "add to", "modify", "make the background", "swap"
+  - Description of what should be different vs. the original
+</Accordion>
+
+**Core rules for reference image editing:**
+
+- **Attach the reference image first** — the image is the primary input; the prompt is secondary
+- **Prompt around the delta only** — describe what should change and what should stay the same; do not re-describe the entire image
+- **Explicitly state what is preserved** — `Keep the subject's face, pose, and clothing unchanged`
+- **State the change precisely** — `Replace the background with a mountain landscape at dusk`
+
+<Tabs>
+  <Tab title="❌ Wrong — Re-describes everything">
+    ```text
+    A woman with brown hair in a red dress standing in front of mountains at dusk, 
+    golden hour lighting, photorealistic
+    ```
+    *(This prompts as if generating from scratch — ignores the reference image)*
+  </Tab>
+  <Tab title="✅ Correct — Describes only the delta">
+    ```text
+    Reference image attached.
+    Keep: subject's face, pose, red dress, and lighting on the subject unchanged.
+    Change: Replace the background with a mountain landscape at dusk. 
+    Match the existing lighting direction on the subject to the new background.
+    ```
+  </Tab>
+</Tabs>

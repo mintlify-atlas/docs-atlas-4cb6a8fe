@@ -1,0 +1,90 @@
+{
+  "projectType": "general",
+  "projectName": "Prompt Master",
+  "projectDescription": "A Claude skill that writes optimized, production-ready prompts for 30+ AI tools — LLMs, coding agents, image/video AI, and automation platforms — eliminating wasted tokens through structured intent extraction and automatic framework selection.",
+  "theme": "luma",
+  "primaryColor": "#343434",
+  "lightColor": "#3c84ec",
+  "darkColor": "#9cc4f4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "How It Works",
+            "pages": [
+              "how-it-works/pipeline",
+              "how-it-works/intent-extraction",
+              "how-it-works/memory-block"
+            ]
+          },
+          {
+            "group": "Tool Profiles",
+            "pages": [
+              "tools/llms",
+              "tools/coding-agents",
+              "tools/image-ai",
+              "tools/video-voice-ai",
+              "tools/automation-ai"
+            ]
+          },
+          {
+            "group": "Prompt Templates",
+            "pages": [
+              "templates/overview",
+              "templates/text-templates",
+              "templates/agentic-templates",
+              "templates/image-templates"
+            ]
+          },
+          {
+            "group": "Anti-Patterns",
+            "pages": [
+              "patterns/overview",
+              "patterns/task-context",
+              "patterns/format-scope",
+              "patterns/reasoning-agentic"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/safe-techniques",
+              "reference/changelog"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Automatic target-tool detection and routing for 30+ AI tools",
+    "9-dimension silent intent extraction before generating any prompt",
+    "12 auto-selected prompt frameworks (RTF, CO-STAR, RISEN, Chain of Thought, etc.)",
+    "Memory Block system to carry forward prior session decisions",
+    "Token efficiency audit that strips every non-load-bearing word",
+    "35 credit-killing anti-pattern detection with before/after fixes",
+    "5 safe techniques only — no hallucination-prone meta-frameworks",
+    "Clarifying question limit (max 3) to avoid prompt-to-answer loops",
+    "Tool-specific profiles for LLMs, coding agents, image/video AI, automation, and 3D AI"
+  ],
+  "publicApiSurface": [
+    "Skill invocation: natural language (\"Write me a prompt for Cursor to…\")",
+    "Explicit invocation: /prompt-master",
+    "Intent dimensions: Task, Target tool, Output format, Constraints, Input, Context, Audience, Success criteria, Examples",
+    "Templates: RTF, CO-STAR, RISEN, CRISPE, Chain of Thought, Few-Shot, File-Scope, ReAct+Stop Conditions, Visual Descriptor, Reference Image Editing, ComfyUI, Prompt Decompiler (Template M for agentic tasks)",
+    "Safe techniques: Role Assignment, Few-Shot Examples, XML Structural Tags, Grounding Anchors, Chain of Thought",
+    "Memory Block: ## Context (carry forward) block prepended to generated prompts",
+    "Prompt Decompiler Mode: break down, adapt, simplify, or split existing prompts",
+    "Output format: single copyable prompt + 🎯 Target + 💡 one-line strategy note"
+  ]
+}

@@ -1,47 +1,89 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Prompt Master in Under a Minute"
+sidebarTitle: "Quickstart"
+description: "Learn how to write your first optimized prompt with Prompt Master using natural language or the explicit /prompt-master invocation."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+This guide walks you from installation to your first working prompt in under a minute. Prompt Master requires no configuration — once the skill is installed in Claude.ai, you invoke it by describing what you need.
 
 ## Prerequisites
 
-Before you begin, you must have:
+- A Claude.ai account (any plan)
+- Prompt Master installed as a Claude skill ([Installation guide](/installation))
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## Your first prompt
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
-    ```bash
-    npm install your-package
-    ```
+  <Step title="Open a Claude conversation">
+    Start a new conversation in Claude.ai. Prompt Master is available in all conversations once installed.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
-
-    ```bash
-    your-cli init
+  <Step title="Ask naturally">
+    Describe what you want a prompt for. Use natural language — no special syntax required:
     ```
+    Write me a prompt for Cursor to refactor my authentication module
+    ```
+    Prompt Master detects the target tool (Cursor), extracts your intent, and routes to the File-Scope template automatically.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
-
-    ```bash
-    your-cli start
+  <Step title="Receive your prompt">
+    Prompt Master delivers a single copyable block with a one-line strategy note:
     ```
+    File: src/auth/auth.js
+    Function: handleLogin()
+    Current behavior: [describe current behavior]
+    Change: Refactor to use async/await. Extract token validation into a separate validateToken() function.
+    Do not touch: any other files, package.json, .env
+    Done when: handleLogin() uses async/await, validateToken() exists and is called correctly, existing tests pass.
+    ```
+    🎯 Target: Cursor · 💡 File-scope template applied — path, function, change, do-not-touch list, and done condition prevent scope creep.
+  </Step>
+  <Step title="Paste and go">
+    Copy the prompt block and paste it directly into Cursor (or your target tool). No editing required.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Explicit invocation
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+You can also invoke Prompt Master explicitly using its skill name:
+
+```
+/prompt-master
+
+I want Claude Code to build a REST API for user authentication — ask me what you need to know
+```
+
+Prompt Master will ask up to 3 targeted clarifying questions if critical information is missing, then generate the prompt.
+
+## More usage examples
+
+**Fix a bad prompt:**
+```
+Here's a bad prompt I wrote for GPT-4o, fix it:
+"Explain machine learning to me and make it interesting"
+```
+
+**Generate an image AI prompt:**
+```
+Generate a Midjourney prompt for a cyberpunk city at night, rainy, neon-lit
+```
+
+**Adapt a prompt for a different tool:**
+```
+Break this prompt down and adapt it for Stable Diffusion: [paste your prompt]
+```
+
+**Coding agent prompt with context:**
+```
+I need a Claude Code prompt to add Stripe webhooks to my existing Express app.
+Stack: Node.js, Express 4, PostgreSQL. The webhook handler goes in src/webhooks/stripe.js.
+```
+
+## What Prompt Master does not do
+
+- It does **not** activate for regular Claude tasks (coding, writing, analysis)
+- It does **not** ask more than 3 clarifying questions before generating
+- It does **not** show you framework names or internal routing
+- It does **not** embed credentials — if you include API keys, they are stripped
+
+<Tip>
+  For the best results with coding agents like Claude Code or Cursor, include your current file path, stack, and what "done" looks like. Prompt Master will still produce a prompt without this, but it will ask up to 3 questions to gather what it needs.
 </Tip>

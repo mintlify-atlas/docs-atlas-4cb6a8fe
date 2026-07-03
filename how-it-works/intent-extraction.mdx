@@ -1,0 +1,112 @@
+---
+title: "How Prompt Master Extracts Intent Before Writing"
+sidebarTitle: "Intent Extraction"
+description: "Prompt Master analyzes every request across 9 structured dimensions before writing a single word — here's what it extracts, when, and why each dimension matters."
+---
+
+The most common reason a prompt fails is not bad phrasing — it's missing information. A prompt that asks a model to "write a summary" without specifying the output length, the audience's technical level, or what counts as a good summary will produce wildly inconsistent results. Prompt Master solves this by decomposing every request into nine structured intent dimensions before writing a single word of the actual prompt. Three dimensions are extracted unconditionally. Six are extracted only when relevant. And if critical dimensions are still missing after extraction, Prompt Master asks — but never more than three questions.
+
+## The 9 Intent Dimensions
+
+| Dimension | What to Extract | Critical? |
+|-----------|----------------|-----------|
+| Task | Specific action — convert vague verbs to precise operations | Always |
+| Target tool | Which AI system receives this prompt | Always |
+| Output format | Shape, length, structure, filetype of the result | Always |
+| Constraints | What MUST and MUST NOT happen, scope boundaries | If complex |
+| Input | What the user is providing alongside the prompt | If applicable |
+| Context | Domain, project state, prior decisions from this session | If session has history |
+| Audience | Who reads the output, their technical level | If user-facing |
+| Success criteria | How to know the prompt worked — binary where possible | If task is complex |
+| Examples | Desired input/output pairs for pattern lock | If format-critical |
+
+### Always-Extracted Dimensions
+
+Three dimensions are extracted on every single request. If any of the three cannot be resolved from your input or the session context, the pipeline pauses before writing the prompt.
+
+**Task** is the most frequently underspecified dimension. Natural language requests are full of vague verbs — *improve*, *enhance*, *fix*, *make it better*. During extraction, every vague verb is converted to a precise operation: *improve* becomes *restructure the argument sequence*; *fix* becomes *correct the type mismatch in the function signature at line 42*; *make it better* becomes *increase output specificity by adding concrete examples for each claim*. This conversion is what allows the resulting prompt to give the model an unambiguous instruction rather than a hope.
+
+**Target tool** determines the entire structural approach of the prompt. Claude, GPT-4o, Gemini, Midjourney, Sora, Runway, and the reasoning-native models (o3, o4-mini, DeepSeek-R1, Qwen3 thinking mode) each have different optimal prompt architectures, context window behaviors, and instruction-following patterns. Routing the wrong structure to the wrong tool is the single most common cause of first-attempt failure.
+
+**Output format** covers shape, length, structure, and filetype. A prompt that does not specify output format leaves the model free to invent its own — and models frequently invent formats that are technically correct but practically useless. Explicit output format instructions (`Respond as a JSON object with keys: title, summary, tags`) eliminate an entire category of post-processing work.
+
+### Conditionally-Extracted Dimensions
+
+The remaining six dimensions are extracted when they are present or relevant to the task. Extracting them when they are not relevant adds noise without signal — a creative writing prompt rarely needs success criteria; a data pipeline prompt rarely needs audience calibration.
+
+**Constraints** — Extracted when the task has meaningful scope boundaries or hard prohibitions. Constraints are always placed in the first 30% of the final prompt, before any instructional content, because the most important thing the model needs to know is what it must not do.
+
+**Input** — Extracted when you are providing material alongside the prompt (a document, a dataset, a codebase, an image). Knowing that input exists changes how the prompt is structured — it needs to reference and handle the input explicitly rather than asking the model to generate from scratch.
+
+**Context** — Extracted from session history when the current request builds on prior decisions. If earlier in the conversation you established a tech stack, locked an architecture pattern, or tried an approach that failed, that context is captured in a [Memory Block](/how-it-works/memory-block) and prepended to the prompt. Without this, the model starts fresh and ignores decisions that are supposed to be settled.
+
+**Audience** — Extracted when the prompt's output will be read by a specific person or group. A technical explainer for a senior engineer is structured and worded completely differently from one for a first-time user. Audience extraction also drives tone, vocabulary ceiling, and assumed knowledge.
+
+**Success criteria** — Extracted for complex tasks where "correct" is not self-evident. Wherever possible, success criteria are converted to binary checks: *Does the output contain a concrete example for every claim? Yes/No.* Binary criteria produce prompts that are measurably verifiable rather than subjectively good-ish.
+
+**Examples** — Extracted and embedded as few-shot pairs when output format is critical and ambiguous. If you describe a desired output pattern and it can be expressed as a concrete before/after pair, that pair will appear in the prompt. Pattern lock via examples is significantly more reliable than describing a format in prose.
+
+## What Happens When Critical Dimensions Are Missing
+
+If the extraction step finds that one or more always-extracted dimensions cannot be resolved, Prompt Master asks. The questions are targeted, specific, and limited to three maximum across the entire interaction.
+
+<Note>
+  The three-question ceiling is a hard limit, not a guideline. Longer interrogations shift the cognitive burden back to you. If three questions are not enough to resolve the ambiguity, Prompt Master will make a reasonable assumption for any remaining gaps, state that assumption explicitly, and deliver the prompt. You can then correct the assumption in the next turn.
+</Note>
+
+Questions are only asked for gaps that would cause the prompt to fail. A missing stylistic preference will not trigger a question — Prompt Master will make a sensible default choice. A missing output format for a structured data task will trigger a question because every possible default would be wrong for at least half of real use cases.
+
+<Tip>
+  You can eliminate all clarifying questions by including three things in your initial request: the target tool by name, the exact output format you want (including length or structure), and any hard constraints. Everything else can be inferred or defaulted.
+</Tip>
+
+## The Token Efficiency Audit
+
+After the intent dimensions are extracted and the prompt is drafted, a six-point audit fires before delivery. This audit is what separates a prompt that looks correct from one that actually works on the first attempt.
+
+<Steps>
+
+  ### Tool match
+  Is the prompt formatted for the confirmed target tool's specific syntax and instruction-following patterns? A Claude prompt and a GPT-4o prompt for the same task should look structurally different.
+
+  ### Constraint placement
+  Are the most critical constraints positioned in the first 30% of the prompt? Constraints buried at the end of a long prompt are frequently ignored due to attention decay in transformer architectures.
+
+  ### Signal word strength
+  Does every instruction use the strongest available signal word? `MUST` instead of *should*. `NEVER` instead of *avoid*. `ALWAYS` instead of *try to*. Weak signal words give the model permission to deviate.
+
+  ### Fabrication check
+  Have all excluded techniques been removed? Mixture of Experts, Tree of Thought, Graph of Thought, Universal Self-Consistency, and layered prompt chaining are permanently excluded because they increase fabrication risk.
+
+  ### Load-bearing test
+  Is every sentence doing work? Vague adjectives are cut. Format instructions are made explicit. Scope is bounded by hard delimiters rather than polite suggestions.
+
+  ### First-attempt test
+  Would this prompt produce the correct output on the first attempt, with no follow-up clarification required? If the answer is no, the prompt goes back through the relevant steps before delivery.
+
+</Steps>
+
+## Example: Dimension Extraction in Practice
+
+Here is how the extraction step processes a real request.
+
+**Raw request:** *"Can you help me write a prompt for summarizing customer feedback?"*
+
+| Dimension | Extracted value | Notes |
+|-----------|----------------|-------|
+| Task | Summarize customer feedback entries into structured insight reports | "Help me write" → the actual task is summarization; "customer feedback" → input domain confirmed |
+| Target tool | ❓ Not specified | Will trigger one clarifying question |
+| Output format | ❓ Not specified | Length, structure, and filetype unknown — will trigger one clarifying question |
+| Constraints | None detected | No prohibitions mentioned |
+| Input | Customer feedback text (format unknown) | Implied by "customer feedback" |
+| Context | None | No session history |
+| Audience | Not specified | Will default to internal/analytical unless user-facing context emerges |
+| Success criteria | Not specified | Will default to: output captures sentiment, key themes, and actionable items |
+| Examples | None provided | No input/output pairs given |
+
+**Clarifying questions triggered (2 of 3 maximum):**
+
+1. Which AI tool will this prompt be used in? (e.g., Claude, ChatGPT, Gemini)
+2. What output format do you need — for example, a bullet-point list per entry, a structured JSON object, or a prose paragraph summary?
+
+After those two answers, every remaining gap either resolves from context or receives a sensible default. The prompt is then built, audited, and delivered — no third question needed.
